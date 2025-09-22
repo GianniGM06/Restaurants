@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Carnet Gastro</title>
+    <title>Mon Carnet Gastro Collaboratif</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -21,20 +21,30 @@
             <a class="navbar-brand fw-bold fs-3" href="#">
                 <i class="bi bi-cup-hot text-primary"></i>
                 Mon Carnet Gastro
+                <span class="badge bg-secondary fs-6" id="syncStatus">⚙️ Configuration...</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#faq" data-bs-toggle="modal" data-bs-target="#faqModal">
-                            <i class="bi bi-question-circle"></i> FAQ
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="githubDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-github"></i> GitHub
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="manualSync()">
+                                <i class="bi bi-arrow-clockwise"></i> Synchroniser maintenant
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="showGitHubConfig()">
+                                <i class="bi bi-gear"></i> Configuration GitHub
+                            </a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="exportData()">
-                            <i class="bi bi-download"></i> Exporter
+                            <i class="bi bi-download"></i> Export local
                         </a>
                     </li>
                 </ul>
@@ -46,11 +56,23 @@
         <div class="main-container">
             <!-- Hero Section -->
             <div class="hero-section">
-                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro Parisien</h1>
-                <p class="fs-5 mb-4">Découvrez, notez et partagez vos meilleures adresses culinaires</p>
-                <button id="findNearbyHero" class="btn btn-light btn-lg">
-                    <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
-                </button>
+                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro Collaboratif</h1>
+                <p class="fs-5 mb-4">Découvrez, notez et partagez vos meilleures adresses culinaires avec vos amis</p>
+                <div class="d-flex justify-content-center gap-3 mb-4">
+                    <button id="findNearbyHero" class="btn btn-light btn-lg">
+                        <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
+                    </button>
+                    <button class="btn btn-outline-light btn-lg" onclick="manualSync()">
+                        <i class="bi bi-cloud-arrow-down"></i> Synchroniser
+                    </button>
+                </div>
+                
+                <!-- Indicateur de collaboration -->
+                <div class="alert alert-info d-inline-block">
+                    <i class="bi bi-people-fill"></i>
+                    <strong>Carnet collaboratif :</strong> Vos amis peuvent aussi ajouter des restaurants !
+                    <br><small>Synchronisation automatique avec GitHub</small>
+                </div>
             </div>
 
             <!-- Stats Section -->
@@ -157,94 +179,6 @@
     <button id="addFloatingBtn" class="btn btn-primary add-button" title="Ajouter">
         <i class="bi bi-plus-lg"></i>
     </button>
-
-    <!-- FAQ Modal -->
-    <div class="modal fade" id="faqModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-question-circle"></i> Questions Fréquentes
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="accordion" id="faqAccordion">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                                    Comment fonctionne le système de notation ?
-                                </button>
-                            </h2>
-                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    <p>Le système de notation utilise <strong>4 critères pondérés</strong> :</p>
-                                    <ul>
-                                        <li><strong>🍽️ Plats (coefficient x2)</strong> : La qualité de la cuisine</li>
-                                        <li><strong>🍷 Vins (coefficient x1.5)</strong> : La carte des vins et accords</li>
-                                        <li><strong>😊 Accueil (coefficient x1.5)</strong> : Service et convivialité</li>
-                                        <li><strong>🏛️ Lieu (coefficient x1)</strong> : Ambiance et décor</li>
-                                    </ul>
-                                    <p><strong>Calcul :</strong> Note finale = (Plats×2 + Vins×1.5 + Accueil×1.5 + Lieu×1) ÷ 6</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                                    Mes données sont-elles sauvegardées ?
-                                </button>
-                            </h2>
-                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    <p>Oui ! Vos données sont automatiquement <strong>sauvegardées localement</strong> dans votre navigateur. 
-                                    Elles persistent même si vous fermez et rouvrez le site.</p>
-                                    <p><strong>💡 Conseil :</strong> Utilisez la fonction "Exporter" pour créer une sauvegarde de sécurité !</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                    Comment ajouter un nouveau type de cuisine ?
-                                </button>
-                            </h2>
-                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    <p>Lors de l'ajout d'un restaurant, vous pouvez :</p>
-                                    <ol>
-                                        <li>Choisir dans la liste prédéfinie</li>
-                                        <li>Ou saisir un <strong>nouveau type de cuisine</strong> en tapant directement dans le champ</li>
-                                    </ol>
-                                    <p>Les nouveaux types que vous créez seront automatiquement ajoutés à la liste pour vos prochains ajouts !</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                                    Comment fonctionne la géolocalisation ?
-                                </button>
-                            </h2>
-                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    <p>Si vous renseignez une <strong>adresse complète</strong>, le système trouve automatiquement les coordonnées GPS 
-                                    pour placer le restaurant sur la carte interactive.</p>
-                                    <p><strong>Format recommandé :</strong> "123 rue de la Paix, 75001 Paris"</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal Add/Edit Restaurant -->
     <div class="modal fade" id="restaurantModal" tabindex="-1">
@@ -462,5 +396,57 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
+
+    <script>
+    // Fonction helper pour afficher la configuration GitHub
+    function showGitHubConfig() {
+        // Recréer et afficher le modal de configuration
+        const existingModal = document.getElementById('githubSetupModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        const modal = restaurantManager.github.createSetupModal();
+        document.body.appendChild(modal);
+        
+        // Préremplir avec les valeurs existantes
+        const owner = localStorage.getItem('githubOwner');
+        const token = localStorage.getItem('githubToken');
+        
+        if (owner) modal.querySelector('#setupOwner').value = owner;
+        if (token) modal.querySelector('#setupToken').value = token;
+        
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        const saveBtn = modal.querySelector('#saveGitHubSetup');
+        saveBtn.addEventListener('click', async () => {
+            const newToken = modal.querySelector('#setupToken').value;
+            const newOwner = modal.querySelector('#setupOwner').value;
+            
+            if (newToken && newOwner) {
+                restaurantManager.github.token = newToken;
+                restaurantManager.github.config.owner = newOwner;
+                
+                localStorage.setItem('githubToken', newToken);
+                localStorage.setItem('githubOwner', newOwner);
+                
+                bsModal.hide();
+                modal.remove();
+                
+                try {
+                    await restaurantManager.github.setup();
+                    await restaurantManager.loadData();
+                    restaurantManager.renderSections();
+                    restaurantManager.showToast('✅ Configuration GitHub mise à jour !', 'success');
+                    restaurantManager.updateSyncStatus('✅ Synchronisé');
+                } catch (error) {
+                    restaurantManager.showToast('❌ Erreur de configuration : ' + error.message, 'danger');
+                    restaurantManager.updateSyncStatus('❌ Erreur de config');
+                }
+            }
+        });
+    }
+    </script>
 </body>
 </html>
