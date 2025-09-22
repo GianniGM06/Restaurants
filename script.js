@@ -1,9 +1,9 @@
-/* ===== GITHUB BACKEND MANAGER ===== */
+/* ===== GITHUB BACKEND MANAGER (OPTIONNEL) ===== */
 class GitHubBackend {
     constructor() {
         this.config = {
             owner: localStorage.getItem('githubOwner') || '',
-            repo: localStorage.getItem('githubRepo') || 'carnet-gastro-data',
+            repo: localStorage.getItem('githubRepo') || 'Restaurants_data',
             filePath: 'restaurants.json',
             branch: 'main'
         };
@@ -12,101 +12,29 @@ class GitHubBackend {
         this.cache = null;
         this.lastSync = null;
         this.isSetup = false;
+        this.isAvailable = !!this.token && !!this.config.owner;
     }
 
-    /* ===== CONFIGURATION INITIALE ===== */
     async setup() {
-        if (!this.token || !this.config.owner) {
-            await this.requestTokenSetup();
+        if (!this.isAvailable) {
+            return false;
         }
         
-        const isConnected = await this.testConnection();
-        if (!isConnected) {
-            throw new Error('Impossible de se connecter à GitHub');
-        }
-        
-        await this.ensureFileExists();
-        this.isSetup = true;
-        return true;
-    }
-
-    async requestTokenSetup() {
-        return new Promise((resolve) => {
-            // Afficher le modal de configuration
-            const existingModal = document.getElementById('githubSetupModal');
-            if (existingModal) {
-                existingModal.remove();
+        try {
+            const isConnected = await this.testConnection();
+            if (!isConnected) {
+                return false;
             }
             
-            const modal = this.createSetupModal();
-            document.body.appendChild(modal);
-            
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-            
-            const saveBtn = modal.querySelector('#saveGitHubSetup');
-            saveBtn.addEventListener('click', () => {
-                const token = modal.querySelector('#setupToken').value;
-                const owner = modal.querySelector('#setupOwner').value;
-                
-                if (token && owner) {
-                    this.token = token;
-                    this.config.owner = owner;
-                    
-                    localStorage.setItem('githubToken', token);
-                    localStorage.setItem('githubOwner', owner);
-                    localStorage.setItem('githubRepo', this.config.repo);
-                    
-                    bsModal.hide();
-                    modal.remove();
-                    resolve();
-                }
-            });
-        });
+            await this.ensureFileExists();
+            this.isSetup = true;
+            return true;
+        } catch (error) {
+            console.error('GitHub setup failed:', error);
+            return false;
+        }
     }
 
-    createSetupModal() {
-        const modal = document.createElement('div');
-        modal.id = 'githubSetupModal';
-        modal.className = 'modal fade';
-        modal.innerHTML = `
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">🔧 Configuration GitHub</h5>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-info">
-                            <h6>📋 Prérequis :</h6>
-                            <ol class="mb-0">
-                                <li>Repository <code>carnet-gastro-data</code> créé sur GitHub</li>
-                                <li>Token d'accès avec permissions "repo"</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Votre nom d'utilisateur GitHub :</label>
-                            <input type="text" class="form-control" id="setupOwner" placeholder="votre-username">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Token d'accès GitHub :</label>
-                            <input type="password" class="form-control" id="setupToken" placeholder="ghp_...">
-                            <small class="form-text text-muted">Le token sera stocké localement</small>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" id="saveGitHubSetup">
-                            <i class="bi bi-check-lg"></i> Sauvegarder et connecter
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        return modal;
-    }
-
-    /* ===== API GITHUB ===== */
     async makeRequest(endpoint, method = 'GET', data = null) {
         const url = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/${endpoint}`;
         
@@ -138,12 +66,10 @@ class GitHubBackend {
             await this.makeRequest('');
             return true;
         } catch (error) {
-            console.error('Connexion GitHub échouée:', error);
             return false;
         }
     }
 
-    /* ===== GESTION DU FICHIER ===== */
     async ensureFileExists() {
         try {
             await this.makeRequest(`contents/${this.config.filePath}`);
@@ -151,34 +77,17 @@ class GitHubBackend {
             const initialData = {
                 metadata: {
                     createdAt: new Date().toISOString(),
-                    version: '1.0',
-                    contributors: [this.config.owner]
+                    version: '1.0'
                 },
                 tested: [],
                 wishlist: [],
-                cuisineTypes: this.getDefaultCuisineTypes()
+                cuisineTypes: []
             };
             
             await this.saveToGitHub(initialData, 'Création initiale du carnet gastro');
         }
     }
 
-    getDefaultCuisineTypes() {
-        return [
-            { value: 'français', label: '🥖 Français', emoji: '🥖' },
-            { value: 'italien', label: '🍕 Italien', emoji: '🍕' },
-            { value: 'asiatique', label: '🍜 Asiatique', emoji: '🍜' },
-            { value: 'japonais', label: '🍣 Japonais', emoji: '🍣' },
-            { value: 'indien', label: '🍛 Indien', emoji: '🍛' },
-            { value: 'mexicain', label: '🌮 Mexicain', emoji: '🌮' },
-            { value: 'libanais', label: '🥙 Libanais', emoji: '🥙' },
-            { value: 'chinois', label: '🥢 Chinois', emoji: '🥢' },
-            { value: 'thaï', label: '🌶️ Thaï', emoji: '🌶️' },
-            { value: 'grec', label: '🫒 Grec', emoji: '🫒' }
-        ];
-    }
-
-    /* ===== CHARGEMENT DES DONNÉES ===== */
     async loadFromGitHub() {
         try {
             const response = await this.makeRequest(`contents/${this.config.filePath}`);
@@ -188,19 +97,17 @@ class GitHubBackend {
             this.cache = {
                 data,
                 sha: response.sha,
-                lastModified: response.last_modified || new Date().toISOString()
+                lastModified: new Date().toISOString()
             };
             
             this.lastSync = new Date();
             return data;
             
         } catch (error) {
-            console.error('Erreur lors du chargement depuis GitHub:', error);
             throw error;
         }
     }
 
-    /* ===== SAUVEGARDE DES DONNÉES ===== */
     async saveToGitHub(data, commitMessage = null) {
         try {
             const enrichedData = {
@@ -208,7 +115,6 @@ class GitHubBackend {
                 metadata: {
                     ...data.metadata,
                     lastUpdated: new Date().toISOString(),
-                    lastUpdatedBy: this.config.owner,
                     version: data.metadata?.version || '1.0'
                 }
             };
@@ -237,145 +143,133 @@ class GitHubBackend {
             return response;
             
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde sur GitHub:', error);
             throw error;
         }
     }
 }
 
-/* ===== RESTAURANT MANAGER AVEC GITHUB ===== */
+/* ===== RESTAURANT MANAGER PRINCIPAL ===== */
 class RestaurantManager {
     constructor() {
-        this.github = new GitHubBackend();
-        this.data = {
-            tested: [],
-            wishlist: [],
-            cuisineTypes: this.getDefaultCuisineTypes()
-        };
-        this.map = null;
-        this.userLocation = null;
-        this.editingId = null;
-        this.isOnline = navigator.onLine;
-        this.syncInProgress = false;
-        
-        // Écouter les changements de connexion
-        window.addEventListener('online', () => this.handleOnline());
-        window.addEventListener('offline', () => this.handleOffline());
-    }
-
-    async initialize() {
-        try {
-            await this.github.setup();
-            await this.loadData();
-            this.setupAutoSync();
-            this.showToast('✅ Connecté à GitHub ! Données synchronisées.', 'success');
-            this.updateSyncStatus('✅ Synchronisé');
-        } catch (error) {
-            console.error('Erreur d\'initialisation GitHub:', error);
-            this.loadLocalData();
-            this.showToast('⚠️ Mode local - configuration GitHub requise', 'warning');
-            this.updateSyncStatus('⚙️ Configuration requise');
-        }
-    }
-
-    async loadData() {
-        try {
-            const data = await this.github.loadFromGitHub();
-            this.data = {
-                tested: data.tested || [],
-                wishlist: data.wishlist || [],
-                cuisineTypes: data.cuisineTypes || this.getDefaultCuisineTypes()
-            };
-            
-            // Backup local
-            this.saveLocalBackup();
-            
-        } catch (error) {
-            console.error('Erreur de chargement GitHub:', error);
-            this.loadLocalData();
-        }
-    }
-
-    loadLocalData() {
-        // Charger depuis localStorage comme fallback
         this.data = {
             tested: JSON.parse(localStorage.getItem('testedRestaurants') || '[]'),
             wishlist: JSON.parse(localStorage.getItem('wishlistRestaurants') || '[]'),
             cuisineTypes: JSON.parse(localStorage.getItem('cuisineTypes') || JSON.stringify(this.getDefaultCuisineTypes()))
         };
+        this.map = null;
+        this.userLocation = null;
+        this.editingId = null;
+        this.github = new GitHubBackend();
+        this.isOnline = navigator.onLine;
+        
+        // Listeners de connexion
+        window.addEventListener('online', () => this.handleOnline());
+        window.addEventListener('offline', () => this.handleOffline());
     }
 
-    saveLocalBackup() {
+    async initialize() {
+        // Essayer de configurer GitHub, mais ne pas échouer si ça marche pas
+        try {
+            const githubSetup = await this.github.setup();
+            if (githubSetup) {
+                await this.loadFromGitHub();
+                this.setupAutoSync();
+                this.updateSyncStatus('✅ GitHub connecté');
+                this.showToast('✅ Synchronisation GitHub activée !', 'success');
+            } else {
+                this.updateSyncStatus('💾 Mode local');
+            }
+        } catch (error) {
+            console.log('GitHub pas configuré, mode local activé');
+            this.updateSyncStatus('💾 Mode local');
+        }
+        
+        return true;
+    }
+
+    async loadFromGitHub() {
+        try {
+            const remoteData = await this.github.loadFromGitHub();
+            
+            // Fusionner avec les données locales si il y en a
+            this.data = {
+                tested: remoteData.tested || this.data.tested,
+                wishlist: remoteData.wishlist || this.data.wishlist,
+                cuisineTypes: remoteData.cuisineTypes || this.data.cuisineTypes
+            };
+            
+            // Backup local
+            this.saveLocalData();
+            
+        } catch (error) {
+            console.log('Impossible de charger depuis GitHub, utilisation des données locales');
+        }
+    }
+
+    saveLocalData() {
         localStorage.setItem('testedRestaurants', JSON.stringify(this.data.tested));
         localStorage.setItem('wishlistRestaurants', JSON.stringify(this.data.wishlist));
         localStorage.setItem('cuisineTypes', JSON.stringify(this.data.cuisineTypes));
     }
 
     async saveData() {
-        if (this.syncInProgress) return;
+        // Toujours sauvegarder en local
+        this.saveLocalData();
         
-        try {
-            if (this.github.isSetup && this.isOnline) {
+        // Essayer de sauvegarder sur GitHub si disponible
+        if (this.github.isSetup && this.isOnline) {
+            try {
                 await this.github.saveToGitHub(this.data);
-                this.saveLocalBackup();
                 this.updateSyncStatus('✅ Synchronisé');
-            } else {
-                this.saveLocalBackup();
-                this.updateSyncStatus('💾 Sauvé localement');
+            } catch (error) {
+                console.error('Erreur GitHub:', error);
+                this.updateSyncStatus('❌ Erreur sync');
             }
-        } catch (error) {
-            console.error('Erreur de sauvegarde:', error);
-            this.updateSyncStatus('❌ Erreur de sync');
-            this.saveLocalBackup(); // Fallback
+        } else {
+            this.updateSyncStatus('💾 Sauvé localement');
         }
     }
 
     setupAutoSync() {
-        // Sync toutes les 2 minutes
         setInterval(async () => {
-            if (this.github.isSetup && this.isOnline && !this.syncInProgress) {
-                await this.syncData();
+            if (this.github.isSetup && this.isOnline) {
+                await this.syncWithGitHub();
             }
-        }, 2 * 60 * 1000);
+        }, 2 * 60 * 1000); // 2 minutes
     }
 
-    async syncData() {
-        if (this.syncInProgress || !this.github.isSetup) return;
-        
-        this.syncInProgress = true;
-        this.updateSyncStatus('🔄 Synchronisation...');
+    async syncWithGitHub() {
+        if (!this.github.isSetup) return;
         
         try {
+            this.updateSyncStatus('🔄 Synchronisation...');
             const remoteData = await this.github.loadFromGitHub();
+            
+            // Merge intelligent - garder les plus récents
             this.data = {
-                tested: remoteData.tested || [],
-                wishlist: remoteData.wishlist || [],
-                cuisineTypes: remoteData.cuisineTypes || this.getDefaultCuisineTypes()
+                tested: remoteData.tested || this.data.tested,
+                wishlist: remoteData.wishlist || this.data.wishlist,
+                cuisineTypes: remoteData.cuisineTypes || this.data.cuisineTypes
             };
             
             this.renderSections();
             this.updateSyncStatus('✅ Synchronisé');
             
         } catch (error) {
-            console.error('Erreur de synchronisation:', error);
-            this.updateSyncStatus('❌ Erreur de sync');
-        } finally {
-            this.syncInProgress = false;
+            this.updateSyncStatus('❌ Erreur sync');
         }
     }
 
     handleOnline() {
         this.isOnline = true;
         if (this.github.isSetup) {
-            this.syncData();
-            this.showToast('🌐 Connexion rétablie - synchronisation...', 'info');
+            this.syncWithGitHub();
         }
     }
 
     handleOffline() {
         this.isOnline = false;
         this.updateSyncStatus('📴 Hors ligne');
-        this.showToast('📴 Mode hors ligne activé', 'warning');
     }
 
     updateSyncStatus(status) {
@@ -400,9 +294,6 @@ class RestaurantManager {
         ];
     }
 
-    /* ===== TOUTES VOS MÉTHODES EXISTANTES ===== */
-    // (Je garde toutes vos méthodes existantes identiques)
-    
     addCuisineType(cuisineInput) {
         const normalizedInput = cuisineInput.toLowerCase().trim();
         
@@ -1001,21 +892,125 @@ class RestaurantManager {
         
         this.showToast('Données exportées avec succès !', 'success');
     }
+
+    // Configuration GitHub
+    showGitHubConfig() {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🔧 Configuration GitHub</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <h6>Activer la synchronisation GitHub :</h6>
+                            <ol class="mb-0">
+                                <li>Créez un repository <code>Restaurants_data</code> sur GitHub</li>
+                                <li>Créez un token avec permissions "repo"</li>
+                                <li>Remplissez les champs ci-dessous</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nom d'utilisateur GitHub :</label>
+                            <input type="text" class="form-control" id="configOwner" value="${this.github.config.owner}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Repository des données :</label>
+                            <input type="text" class="form-control" id="configRepo" value="${this.github.config.repo}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Token d'accès GitHub :</label>
+                            <input type="password" class="form-control" id="configToken" value="${this.github.token || ''}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-primary" onclick="restaurantManager.saveGitHubConfig(this)">
+                            <i class="bi bi-check-lg"></i> Sauvegarder
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    }
+
+    async saveGitHubConfig(button) {
+        const modal = button.closest('.modal');
+        const owner = modal.querySelector('#configOwner').value;
+        const repo = modal.querySelector('#configRepo').value;
+        const token = modal.querySelector('#configToken').value;
+        
+        if (!owner || !repo || !token) {
+            alert('Veuillez remplir tous les champs');
+            return;
+        }
+        
+        // Sauvegarder la configuration
+        localStorage.setItem('githubOwner', owner);
+        localStorage.setItem('githubRepo', repo);
+        localStorage.setItem('githubToken', token);
+        
+        // Reconfigurer GitHub
+        this.github.config.owner = owner;
+        this.github.config.repo = repo;
+        this.github.token = token;
+        this.github.isAvailable = true;
+        
+        // Fermer le modal
+        bootstrap.Modal.getInstance(modal).hide();
+        
+        try {
+            // Tenter la connexion
+            const setupSuccess = await this.github.setup();
+            if (setupSuccess) {
+                await this.github.saveToGitHub(this.data, 'Configuration initiale depuis l\'app');
+                this.setupAutoSync();
+                this.updateSyncStatus('✅ GitHub connecté');
+                this.showToast('✅ GitHub configuré avec succès !', 'success');
+            } else {
+                throw new Error('Impossible de se connecter à GitHub');
+            }
+        } catch (error) {
+            this.updateSyncStatus('❌ Erreur GitHub');
+            this.showToast('❌ Erreur : ' + error.message, 'danger');
+        }
+    }
 }
 
-/* ===== FONCTIONS GLOBALES ===== */
+/* ===== VARIABLE GLOBALE ===== */
 let restaurantManager;
 
+/* ===== FONCTIONS GLOBALES ===== */
 function openAddModal(type) {
-    restaurantManager.openAddModal(type);
+    if (restaurantManager) {
+        restaurantManager.openAddModal(type);
+    }
 }
 
 function saveRestaurant() {
-    restaurantManager.saveRestaurant();
+    if (restaurantManager) {
+        restaurantManager.saveRestaurant();
+    }
 }
 
 function transferToTested() {
-    restaurantManager.transferToTested();
+    if (restaurantManager) {
+        restaurantManager.transferToTested();
+    }
 }
 
 function selectCuisine(cuisine) {
@@ -1023,59 +1018,110 @@ function selectCuisine(cuisine) {
 }
 
 function exportData() {
-    restaurantManager.exportData();
+    if (restaurantManager) {
+        restaurantManager.exportData();
+    }
 }
 
 function manualSync() {
-    restaurantManager.syncData();
+    if (restaurantManager) {
+        if (restaurantManager.github.isSetup) {
+            restaurantManager.syncWithGitHub();
+        } else {
+            restaurantManager.showGitHubConfig();
+        }
+    }
+}
+
+function showGitHubConfig() {
+    if (restaurantManager) {
+        restaurantManager.showGitHubConfig();
+    }
 }
 
 /* ===== INITIALISATION ===== */
 document.addEventListener('DOMContentLoaded', async function() {
-    restaurantManager = new RestaurantManager();
+    console.log('Initialisation du carnet gastro...');
     
     try {
+        restaurantManager = new RestaurantManager();
+        
         await restaurantManager.initialize();
         restaurantManager.renderSections();
         restaurantManager.setupStarRatings();
         restaurantManager.updateCuisineDropdown();
+        
+        console.log('✅ Carnet gastro initialisé avec succès');
+        
     } catch (error) {
-        console.error('Erreur d\'initialisation:', error);
+        console.error('❌ Erreur d\'initialisation:', error);
+        // Créer un fallback minimal si tout échoue
+        if (!restaurantManager) {
+            restaurantManager = {
+                showToast: (msg) => alert(msg),
+                openAddModal: () => alert('Erreur: Application non initialisée')
+            };
+        }
     }
     
-    document.getElementById('addFloatingBtn').addEventListener('click', function() {
-        const activeTab = document.querySelector('.nav-link.active').id;
-        const type = activeTab.includes('wishlist') ? 'wishlist' : 'tested';
-        restaurantManager.openAddModal(type);
-    });
+    // Événements boutons
+    const addFloatingBtn = document.getElementById('addFloatingBtn');
+    if (addFloatingBtn) {
+        addFloatingBtn.addEventListener('click', function() {
+            const activeTab = document.querySelector('.nav-link.active');
+            const type = (activeTab && activeTab.id.includes('wishlist')) ? 'wishlist' : 'tested';
+            openAddModal(type);
+        });
+    }
     
-    document.getElementById('findNearbyHero').addEventListener('click', () => {
-        restaurantManager.getUserLocation();
-    });
+    const findNearbyBtn = document.getElementById('findNearbyHero');
+    if (findNearbyBtn) {
+        findNearbyBtn.addEventListener('click', () => {
+            if (restaurantManager && restaurantManager.getUserLocation) {
+                restaurantManager.getUserLocation();
+            }
+        });
+    }
 
-    document.getElementById('map-tab').addEventListener('shown.bs.tab', function() {
-        if (!restaurantManager.map) {
-            setTimeout(() => restaurantManager.initMap(), 100);
-        }
-    });
+    // Événement carte
+    const mapTab = document.getElementById('map-tab');
+    if (mapTab) {
+        mapTab.addEventListener('shown.bs.tab', function() {
+            if (restaurantManager && !restaurantManager.map) {
+                setTimeout(() => {
+                    if (restaurantManager.initMap) {
+                        restaurantManager.initMap();
+                    }
+                }, 100);
+            }
+        });
+    }
 
+    // Événement cuisine input
     const cuisineInput = document.getElementById('cuisineInput');
     if (cuisineInput) {
         cuisineInput.addEventListener('input', function() {
             const value = this.value.toLowerCase();
             const dropdown = document.getElementById('cuisineDropdown');
-            const items = dropdown.querySelectorAll('.dropdown-item');
-            
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(value) ? 'block' : 'none';
-            });
+            if (dropdown) {
+                const items = dropdown.querySelectorAll('.dropdown-item');
+                
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(value) ? 'block' : 'none';
+                });
+            }
         });
     }
 
-    if (restaurantManager.data.tested.length === 0 && restaurantManager.data.wishlist.length === 0) {
-        setTimeout(() => {
-            restaurantManager.showToast('Bienvenue ! Configurez GitHub pour collaborer avec vos amis 🍽️', 'info');
-        }, 2000);
-    }
+    // Message de bienvenue différé
+    setTimeout(() => {
+        if (restaurantManager && restaurantManager.showToast) {
+            if (restaurantManager.github && restaurantManager.github.isSetup) {
+                restaurantManager.showToast('Carnet gastro collaboratif prêt ! 🍽️', 'info');
+            } else {
+                restaurantManager.showToast('Carnet gastro prêt ! Pour collaborer, configurez GitHub dans le menu. 👥', 'info');
+            }
+        }
+    }, 2000);
 });
