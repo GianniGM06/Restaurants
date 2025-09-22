@@ -1,9 +1,11 @@
 /* ===== GITHUB BACKEND MANAGER (OPTIONNEL) ===== */
+// Remplacez la classe GitHubBackend par cette version corrigée
+
 class GitHubBackend {
     constructor() {
         this.config = {
             owner: localStorage.getItem('githubOwner') || '',
-            repo: localStorage.getItem('githubRepo') || 'Restaurants_data',
+            repo: localStorage.getItem('githubRepo') || 'Restaurants_data', // Corrigé !
             filePath: 'restaurants.json',
             branch: 'main'
         };
@@ -13,6 +15,11 @@ class GitHubBackend {
         this.lastSync = null;
         this.isSetup = false;
         this.isAvailable = !!this.token && !!this.config.owner;
+        
+        // Proxy CORS pour GitHub Pages
+        this.corsProxy = 'https://api.allorigins.win/raw?url=';
+        this.useProxy = window.location.hostname === 'giannigm06.github.io' || 
+                        window.location.hostname.includes('github.io');
     }
 
     async setup() {
@@ -36,26 +43,45 @@ class GitHubBackend {
     }
 
     async makeRequest(endpoint, method = 'GET', data = null) {
-        const url = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/${endpoint}`;
+        // Nettoyer l'endpoint (enlever slash en trop)
+        const cleanEndpoint = endpoint.replace(/^\/+/, '');
+        const baseUrl = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}`;
+        const fullUrl = cleanEndpoint ? `${baseUrl}/${cleanEndpoint}` : baseUrl;
+        
+        // Utiliser le proxy si on est sur GitHub Pages
+        const requestUrl = this.useProxy && method === 'GET' ? 
+            `${this.corsProxy}${encodeURIComponent(fullUrl)}` : fullUrl;
+        
+        console.log('Request URL:', requestUrl);
         
         const options = {
             method,
             headers: {
-                'Authorization': `token ${this.token}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
+                'Accept': 'application/vnd.github.v3+json'
             }
         };
+
+        // Ajouter l'auth seulement si pas de proxy (le proxy ne peut pas passer les headers)
+        if (!this.useProxy || method !== 'GET') {
+            options.headers['Authorization'] = `token ${this.token}`;
+            options.headers['Content-Type'] = 'application/json';
+        }
         
         if (data) {
             options.body = JSON.stringify(data);
         }
         
-        const response = await fetch(url, options);
+        const response = await fetch(requestUrl, options);
         
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`GitHub API Error: ${error.message}`);
+            let errorMessage = `HTTP ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage += `: ${errorData.message || 'Erreur inconnue'}`;
+            } catch (e) {
+                errorMessage += `: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
         
         return response.json();
@@ -63,9 +89,16 @@ class GitHubBackend {
 
     async testConnection() {
         try {
-            await this.makeRequest('');
+            console.log('Test connexion GitHub API...');
+            console.log('Config:', this.config);
+            console.log('Use proxy:', this.useProxy);
+            
+            const data = await this.makeRequest('');
+            console.log('Repository trouvé:', data.name);
             return true;
+            
         } catch (error) {
+            console.error('Erreur de connexion:', error);
             return false;
         }
     }
@@ -74,29 +107,54 @@ class GitHubBackend {
         try {
             await this.makeRequest(`contents/${this.config.filePath}`);
         } catch (error) {
-            const initialData = {
-                metadata: {
-                    createdAt: new Date().toISOString(),
-                    version: '1.0'
-                },
-                tested: [],
-                wishlist: [],
-                cuisineTypes: []
-            };
-            
-            await this.saveToGitHub(initialData, 'Création initiale du carnet gastro');
+            if (error.message.includes('404')) {
+                // Le fichier n'existe pas, essayer de le créer
+                // Note: La création nécessite un token, donc on ne peut pas utiliser le proxy
+                if (this.useProxy) {
+                    console.warn('Cannot create file via proxy. File must be created manually or use different hosting.');
+                    throw new Error('Pour GitHub Pages, le fichier restaurants.json doit être créé manuellement dans le repository');
+                }
+                
+                const initialData = {
+                    metadata: {
+                        createdAt: new Date().toISOString(),
+                        version: '1.0'
+                    },
+                    tested: [],
+                    wishlist: [],
+                    cuisineTypes: []
+                };
+                
+                await this.saveToGitHub(initialData, 'Création initiale du carnet gastro');
+            } else {
+                throw error;
+            }
         }
     }
 
     async loadFromGitHub() {
         try {
             const response = await this.makeRequest(`contents/${this.config.filePath}`);
-            const content = atob(response.content.replace(/\s/g, ''));
+            
+            let content;
+            if (this.useProxy) {
+                // Avec le proxy, la réponse peut être directement le contenu
+                if (typeof response === 'string') {
+                    content = response;
+                } else if (response.content) {
+                    content = atob(response.content.replace(/\s/g, ''));
+                } else {
+                    throw new Error('Format de réponse inattendu');
+                }
+            } else {
+                content = atob(response.content.replace(/\s/g, ''));
+            }
+            
             const data = JSON.parse(content);
             
             this.cache = {
                 data,
-                sha: response.sha,
+                sha: response.sha || null,
                 lastModified: new Date().toISOString()
             };
             
@@ -104,11 +162,16 @@ class GitHubBackend {
             return data;
             
         } catch (error) {
+            console.error('Erreur loadFromGitHub:', error);
             throw error;
         }
     }
 
     async saveToGitHub(data, commitMessage = null) {
+        if (this.useProxy) {
+            throw new Error('La sauvegarde nécessite un hébergement compatible (pas GitHub Pages). Utilisez Netlify ou Vercel.');
+        }
+        
         try {
             const enrichedData = {
                 ...data,
@@ -143,6 +206,7 @@ class GitHubBackend {
             return response;
             
         } catch (error) {
+            console.error('Erreur saveToGitHub:', error);
             throw error;
         }
     }
