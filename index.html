@@ -11,177 +11,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        :root {
-            --bs-primary: #0d6efd;
-            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        body {
-            background: var(--gradient-bg);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(10px);
-        }
-
-        .main-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin: 2rem 0;
-            overflow: hidden;
-        }
-
-        .hero-section {
-            background: var(--gradient-bg);
-            color: white;
-            padding: 4rem 2rem;
-            text-align: center;
-        }
-
-        .stats-card {
-            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border: none;
-            transition: transform 0.3s;
-        }
-
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .restaurant-card {
-            transition: all 0.3s ease;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-
-        .restaurant-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-        }
-
-        .wishlist-card {
-            border-left: 4px solid #198754;
-            background: linear-gradient(45deg, #f8fff9, #d1e7dd);
-        }
-
-        .rating-section {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .final-rating {
-            background: var(--bs-primary);
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .btn-action {
-            padding: 5px 10px;
-            font-size: 12px;
-            border-radius: 15px;
-        }
-
-        .add-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 24px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            z-index: 1000;
-        }
-
-        #map {
-            height: 500px;
-            border-radius: 10px;
-        }
-
-        .stars {
-            color: #ffc107;
-        }
-
-        .modal-header {
-            background: var(--gradient-bg);
-            color: white;
-        }
-
-        .rating-input {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-
-        .star-rating {
-            display: inline-flex;
-            font-size: 20px;
-        }
-
-        .star-rating .star {
-            color: #ddd;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .star-rating .star.active,
-        .star-rating .star:hover {
-            color: #ffc107;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #6c757d;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .hero-section {
-                padding: 2rem 1rem;
-            }
-            
-            .main-container {
-                margin: 1rem 0;
-                border-radius: 0;
-            }
-            
-            .add-button {
-                bottom: 10px;
-                right: 10px;
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-
-            .action-buttons {
-                justify-content: center;
-            }
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Navbar -->
@@ -197,13 +28,14 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#tested">Testés</a>
+                        <a class="nav-link" href="#faq" data-bs-toggle="modal" data-bs-target="#faqModal">
+                            <i class="bi bi-question-circle"></i> FAQ
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#wishlist">Envies</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#map-section">Carte</a>
+                        <a class="nav-link" href="#" onclick="exportData()">
+                            <i class="bi bi-download"></i> Exporter
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -254,9 +86,9 @@
                     <div class="col-md-3">
                         <div class="card stats-card text-center h-100">
                             <div class="card-body">
-                                <i class="bi bi-geo-alt-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="user-distance">--</h2>
-                                <p class="card-text">Distance parcourue</p>
+                                <i class="bi bi-globe fs-1 mb-2"></i>
+                                <h2 class="card-title" id="countries-count">--</h2>
+                                <p class="card-text">Pays explorés</p>
                             </div>
                         </div>
                     </div>
@@ -326,6 +158,94 @@
         <i class="bi bi-plus-lg"></i>
     </button>
 
+    <!-- FAQ Modal -->
+    <div class="modal fade" id="faqModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-question-circle"></i> Questions Fréquentes
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Comment fonctionne le système de notation ?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Le système de notation utilise <strong>4 critères pondérés</strong> :</p>
+                                    <ul>
+                                        <li><strong>🍽️ Plats (coefficient x2)</strong> : La qualité de la cuisine</li>
+                                        <li><strong>🍷 Vins (coefficient x1.5)</strong> : La carte des vins et accords</li>
+                                        <li><strong>😊 Accueil (coefficient x1.5)</strong> : Service et convivialité</li>
+                                        <li><strong>🏛️ Lieu (coefficient x1)</strong> : Ambiance et décor</li>
+                                    </ul>
+                                    <p><strong>Calcul :</strong> Note finale = (Plats×2 + Vins×1.5 + Accueil×1.5 + Lieu×1) ÷ 6</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Mes données sont-elles sauvegardées ?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Oui ! Vos données sont automatiquement <strong>sauvegardées localement</strong> dans votre navigateur. 
+                                    Elles persistent même si vous fermez et rouvrez le site.</p>
+                                    <p><strong>💡 Conseil :</strong> Utilisez la fonction "Exporter" pour créer une sauvegarde de sécurité !</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    Comment ajouter un nouveau type de cuisine ?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Lors de l'ajout d'un restaurant, vous pouvez :</p>
+                                    <ol>
+                                        <li>Choisir dans la liste prédéfinie</li>
+                                        <li>Ou saisir un <strong>nouveau type de cuisine</strong> en tapant directement dans le champ</li>
+                                    </ol>
+                                    <p>Les nouveaux types que vous créez seront automatiquement ajoutés à la liste pour vos prochains ajouts !</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    Comment fonctionne la géolocalisation ?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <p>Si vous renseignez une <strong>adresse complète</strong>, le système trouve automatiquement les coordonnées GPS 
+                                    pour placer le restaurant sur la carte interactive.</p>
+                                    <p><strong>Format recommandé :</strong> "123 rue de la Paix, 75001 Paris"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Add/Edit Restaurant -->
     <div class="modal fade" id="restaurantModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -346,23 +266,23 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Type de cuisine *</label>
-                                <select class="form-control" id="type" required>
-                                    <option value="">Choisir...</option>
-                                    <option value="français">🥖 Français</option>
-                                    <option value="italien">🍕 Italien</option>
-                                    <option value="asiatique">🍜 Asiatique</option>
-                                    <option value="japonais">🍣 Japonais</option>
-                                    <option value="indien">🍛 Indien</option>
-                                    <option value="mexicain">🌮 Mexicain</option>
-                                    <option value="libanais">🥙 Libanais</option>
-                                </select>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="cuisineInput" placeholder="Tapez ou choisissez" required>
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                    <ul class="dropdown-menu" id="cuisineDropdown">
+                                        <!-- Dynamically populated -->
+                                    </ul>
+                                </div>
+                                <small class="form-text text-muted">Vous pouvez taper un nouveau type de cuisine</small>
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Localisation *</label>
-                                <input type="text" class="form-control" id="location" placeholder="ex: 6ème arrondissement" required>
+                                <input type="text" class="form-control" id="location" placeholder="ex: 6ème arrondissement, Tokyo, New York" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Prix</label>
@@ -541,580 +461,6 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script>
-        // Data storage
-        let restaurantsData = {
-            tested: JSON.parse(localStorage.getItem('testedRestaurants') || '[]'),
-            wishlist: JSON.parse(localStorage.getItem('wishlistRestaurants') || '[]')
-        };
-
-        let map;
-        let userLocation = null;
-        let editingId = null;
-
-        // Save to localStorage
-        function saveData() {
-            localStorage.setItem('testedRestaurants', JSON.stringify(restaurantsData.tested));
-            localStorage.setItem('wishlistRestaurants', JSON.stringify(restaurantsData.wishlist));
-        }
-
-        // Calculate weighted final rating
-        function calculateFinalRating(ratings) {
-            const weighted = (ratings.plats * 2 + ratings.vins * 1.5 + ratings.accueil * 1.5 + ratings.lieu * 1) / 6;
-            return Math.round(weighted * 10) / 10;
-        }
-
-        // Generate stars
-        function generateStars(rating) {
-            let stars = '';
-            for (let i = 1; i <= 5; i++) {
-                if (i <= rating) {
-                    stars += '<i class="bi bi-star-fill"></i>';
-                } else if (i - 0.5 <= rating) {
-                    stars += '<i class="bi bi-star-half"></i>';
-                } else {
-                    stars += '<i class="bi bi-star"></i>';
-                }
-            }
-            return stars;
-        }
-
-        // Get cuisine badge color
-        function getCuisineBadge(type) {
-            const badges = {
-                'français': 'bg-primary',
-                'italien': 'bg-success', 
-                'asiatique': 'bg-danger',
-                'japonais': 'bg-warning',
-                'indien': 'bg-info',
-                'mexicain': 'bg-dark',
-                'libanais': 'bg-secondary'
-            };
-            return badges[type] || 'bg-secondary';
-        }
-
-        // Create tested restaurant card
-        function createTestedCard(restaurant) {
-            const finalRating = calculateFinalRating(restaurant.ratings);
-            const photo = restaurant.photo || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=250&fit=crop';
-            
-            return `
-                <div class="col-md-6 mb-4">
-                    <div class="card restaurant-card h-100">
-                        <img src="${photo}" class="card-img-top" alt="${restaurant.name}" style="height: 200px; object-fit: cover;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title">${restaurant.name}</h5>
-                                <span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span>
-                            </div>
-                            <p class="card-text text-muted">
-                                <i class="bi bi-geo-alt"></i> ${restaurant.location}
-                                <span class="ms-2">${restaurant.priceRange || '€€'}</span>
-                            </p>
-                            
-                            <div class="rating-section">
-                                <div class="row mb-2">
-                                    <div class="col-8"><small>🍽️ Plats (x2)</small></div>
-                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.plats)}</span></div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-8"><small>🍷 Vins (x1.5)</small></div>
-                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.vins)}</span></div>
-                                </div>
-                                <div class="row mb-2">
-                                    <div class="col-8"><small>😊 Accueil (x1.5)</small></div>
-                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.accueil)}</span></div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-8"><small>🏛️ Lieu (x1)</small></div>
-                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.lieu)}</span></div>
-                                </div>
-                            </div>
-
-                            <div class="final-rating">
-                                <strong>${finalRating}/5</strong> ${generateStars(finalRating)}
-                            </div>
-
-                            ${restaurant.comment ? `<blockquote class="blockquote-footer mt-3">"${restaurant.comment}"</blockquote>` : ''}
-
-                            <div class="action-buttons">
-                                <button class="btn btn-outline-primary btn-action" onclick="editRestaurant('${restaurant.id}', 'tested')">
-                                    <i class="bi bi-pencil"></i> Modifier
-                                </button>
-                                <button class="btn btn-outline-danger btn-action" onclick="deleteRestaurant('${restaurant.id}', 'tested')">
-                                    <i class="bi bi-trash"></i> Supprimer
-                                </button>
-                                ${restaurant.coordinates ? `
-                                <button class="btn btn-outline-info btn-action" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
-                                    <i class="bi bi-geo-alt"></i> Carte
-                                </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Create wishlist restaurant card
-        function createWishlistCard(restaurant) {
-            const photo = restaurant.photo || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=250&fit=crop';
-            
-            return `
-                <div class="col-md-6 mb-4">
-                    <div class="card restaurant-card wishlist-card h-100">
-                        <img src="${photo}" class="card-img-top" alt="${restaurant.name}" style="height: 200px; object-fit: cover;">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title">${restaurant.name}</h5>
-                                <span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span>
-                            </div>
-                            <p class="card-text text-muted">
-                                <i class="bi bi-geo-alt"></i> ${restaurant.location}
-                                <span class="ms-2">${restaurant.priceRange || '€€'}</span>
-                            </p>
-                            ${restaurant.reason ? `
-                            <div class="alert alert-success">
-                                <strong>💡 Pourquoi :</strong><br>
-                                ${restaurant.reason}
-                            </div>
-                            ` : ''}
-                            ${restaurant.comment ? `<p class="text-muted"><em>"${restaurant.comment}"</em></p>` : ''}
-                            
-                            <div class="action-buttons">
-                                <button class="btn btn-success btn-action" onclick="openTransferModal('${restaurant.id}')">
-                                    <i class="bi bi-arrow-right"></i> Testé !
-                                </button>
-                                <button class="btn btn-outline-primary btn-action" onclick="editRestaurant('${restaurant.id}', 'wishlist')">
-                                    <i class="bi bi-pencil"></i> Modifier
-                                </button>
-                                <button class="btn btn-outline-danger btn-action" onclick="deleteRestaurant('${restaurant.id}', 'wishlist')">
-                                    <i class="bi bi-trash"></i> Supprimer
-                                </button>
-                                ${restaurant.coordinates ? `
-                                <button class="btn btn-outline-info btn-action" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
-                                    <i class="bi bi-geo-alt"></i> Carte
-                                </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Generate empty state
-        function createEmptyState(type) {
-            const isWishlist = type === 'wishlist';
-            return `
-                <div class="col-12">
-                    <div class="empty-state">
-                        <i class="bi bi-${isWishlist ? 'heart' : 'star'}"></i>
-                        <h4>Aucun restaurant ${isWishlist ? 'dans votre wishlist' : 'testé'}</h4>
-                        <p class="text-muted">
-                            ${isWishlist ? 'Commencez par ajouter des restaurants que vous aimeriez tester !' : 'Ajoutez vos premiers restaurants testés avec leurs notes !'}
-                        </p>
-                        <button class="btn btn-${isWishlist ? 'success' : 'primary'}" onclick="openAddModal('${type}')">
-                            <i class="bi bi-plus-lg"></i> ${isWishlist ? 'Ajouter une envie' : 'Ajouter un restaurant'}
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Render sections
-        function renderSections() {
-            const testedGrid = document.getElementById('tested-grid');
-            const wishlistGrid = document.getElementById('wishlist-grid');
-
-            // Render tested restaurants
-            if (restaurantsData.tested.length === 0) {
-                testedGrid.innerHTML = createEmptyState('tested');
-            } else {
-                testedGrid.innerHTML = restaurantsData.tested.map(createTestedCard).join('');
-            }
-
-            // Render wishlist
-            if (restaurantsData.wishlist.length === 0) {
-                wishlistGrid.innerHTML = createEmptyState('wishlist');
-            } else {
-                wishlistGrid.innerHTML = restaurantsData.wishlist.map(createWishlistCard).join('');
-            }
-
-            updateStats();
-        }
-
-        // Update statistics
-        function updateStats() {
-            document.getElementById('tested-count').textContent = restaurantsData.tested.length;
-            document.getElementById('wishlist-count').textContent = restaurantsData.wishlist.length;
-
-            if (restaurantsData.tested.length > 0) {
-                const avgRating = restaurantsData.tested.reduce((sum, r) => sum + calculateFinalRating(r.ratings), 0) / restaurantsData.tested.length;
-                document.getElementById('avg-rating').textContent = Math.round(avgRating * 10) / 10;
-            } else {
-                document.getElementById('avg-rating').textContent = '--';
-            }
-        }
-
-        // Open add modal
-        function openAddModal(type) {
-            editingId = null;
-            document.getElementById('modalTitle').textContent = type === 'tested' ? 'Ajouter un restaurant testé' : 'Ajouter à ma wishlist';
-            document.getElementById('modalType').value = type;
-            
-            // Reset form
-            document.getElementById('restaurantForm').reset();
-            document.getElementById('editId').value = '';
-            
-            // Show/hide sections
-            document.getElementById('ratingsSection').style.display = type === 'tested' ? 'block' : 'none';
-            document.getElementById('wishlistSection').style.display = type === 'wishlist' ? 'block' : 'none';
-            
-            // Set default ratings
-            if (type === 'tested') {
-                setStarRating('plats', 5);
-                setStarRating('vins', 5);
-                setStarRating('accueil', 5);
-                setStarRating('lieu', 5);
-            }
-            
-            new bootstrap.Modal(document.getElementById('restaurantModal')).show();
-        }
-
-        // Open edit modal
-        function editRestaurant(id, type) {
-            const restaurant = restaurantsData[type].find(r => r.id === id);
-            if (!restaurant) return;
-            
-            editingId = id;
-            document.getElementById('modalTitle').textContent = 'Modifier ' + restaurant.name;
-            document.getElementById('modalType').value = type;
-            document.getElementById('editId').value = id;
-            
-            // Fill form
-            document.getElementById('name').value = restaurant.name;
-            document.getElementById('type').value = restaurant.type;
-            document.getElementById('location').value = restaurant.location;
-            document.getElementById('address').value = restaurant.address || '';
-            document.getElementById('photo').value = restaurant.photo || '';
-            document.getElementById('priceRange').value = restaurant.priceRange || '€€';
-            document.getElementById('comment').value = restaurant.comment || '';
-            
-            // Show/hide sections
-            document.getElementById('ratingsSection').style.display = type === 'tested' ? 'block' : 'none';
-            document.getElementById('wishlistSection').style.display = type === 'wishlist' ? 'block' : 'none';
-            
-            if (type === 'tested') {
-                setStarRating('plats', restaurant.ratings.plats);
-                setStarRating('vins', restaurant.ratings.vins);
-                setStarRating('accueil', restaurant.ratings.accueil);
-                setStarRating('lieu', restaurant.ratings.lieu);
-            } else {
-                document.getElementById('reason').value = restaurant.reason || '';
-            }
-            
-            new bootstrap.Modal(document.getElementById('restaurantModal')).show();
-        }
-
-        // Save restaurant
-        async function saveRestaurant() {
-            const form = document.getElementById('restaurantForm');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            
-            const type = document.getElementById('modalType').value;
-            const isEdit = !!editingId;
-            
-            const restaurantData = {
-                id: editingId || Date.now().toString(),
-                name: document.getElementById('name').value,
-                type: document.getElementById('type').value,
-                location: document.getElementById('location').value,
-                address: document.getElementById('address').value,
-                photo: document.getElementById('photo').value,
-                priceRange: document.getElementById('priceRange').value,
-                comment: document.getElementById('comment').value,
-                dateAdded: isEdit ? restaurantsData[type].find(r => r.id === editingId).dateAdded : new Date().toISOString().split('T')[0]
-            };
-
-            // Geocoding
-            if (restaurantData.address) {
-                const coords = await geocodeAddress(restaurantData.address);
-                if (coords) {
-                    restaurantData.coordinates = coords;
-                }
-            }
-
-            if (type === 'tested') {
-                restaurantData.ratings = {
-                    plats: parseInt(document.getElementById('platsRating').value),
-                    vins: parseInt(document.getElementById('vinsRating').value),
-                    accueil: parseInt(document.getElementById('accueilRating').value),
-                    lieu: parseInt(document.getElementById('lieuRating').value)
-                };
-                restaurantData.dateVisited = restaurantData.dateAdded;
-            } else {
-                restaurantData.reason = document.getElementById('reason').value;
-            }
-
-            if (isEdit) {
-                const index = restaurantsData[type].findIndex(r => r.id === editingId);
-                restaurantsData[type][index] = restaurantData;
-            } else {
-                restaurantsData[type].push(restaurantData);
-            }
-
-            saveData();
-            renderSections();
-            bootstrap.Modal.getInstance(document.getElementById('restaurantModal')).hide();
-            
-            // Show success message
-            showToast(isEdit ? 'Restaurant modifié !' : 'Restaurant ajouté !', 'success');
-        }
-
-        // Delete restaurant
-        function deleteRestaurant(id, type) {
-            const restaurant = restaurantsData[type].find(r => r.id === id);
-            if (!restaurant) return;
-            
-            if (confirm(`Êtes-vous sûr de vouloir supprimer "${restaurant.name}" ?`)) {
-                restaurantsData[type] = restaurantsData[type].filter(r => r.id !== id);
-                saveData();
-                renderSections();
-                showToast('Restaurant supprimé !', 'success');
-            }
-        }
-
-        // Open transfer modal
-        function openTransferModal(id) {
-            const restaurant = restaurantsData.wishlist.find(r => r.id === id);
-            if (!restaurant) return;
-            
-            document.getElementById('transferId').value = id;
-            document.getElementById('transferRestaurantName').textContent = restaurant.name;
-            document.getElementById('transferComment').value = '';
-            
-            // Set default ratings
-            setStarRating('transferPlats', 5);
-            setStarRating('transferVins', 5);
-            setStarRating('transferAccueil', 5);
-            setStarRating('transferLieu', 5);
-            
-            new bootstrap.Modal(document.getElementById('transferModal')).show();
-        }
-
-        // Transfer to tested
-        function transferToTested() {
-            const id = document.getElementById('transferId').value;
-            const restaurant = restaurantsData.wishlist.find(r => r.id === id);
-            if (!restaurant) return;
-            
-            const testedRestaurant = {
-                ...restaurant,
-                ratings: {
-                    plats: parseInt(document.getElementById('transferPlatsRating').value),
-                    vins: parseInt(document.getElementById('transferVinsRating').value),
-                    accueil: parseInt(document.getElementById('transferAccueilRating').value),
-                    lieu: parseInt(document.getElementById('transferLieuRating').value)
-                },
-                comment: document.getElementById('transferComment').value,
-                dateVisited: new Date().toISOString().split('T')[0]
-            };
-            
-            // Remove reason (wishlist specific)
-            delete testedRestaurant.reason;
-            
-            // Add to tested and remove from wishlist
-            restaurantsData.tested.push(testedRestaurant);
-            restaurantsData.wishlist = restaurantsData.wishlist.filter(r => r.id !== id);
-            
-            saveData();
-            renderSections();
-            bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
-            
-            // Switch to tested tab
-            document.getElementById('tested-tab').click();
-            showToast('Restaurant transféré dans "Testés" !', 'success');
-        }
-
-        // Star rating functionality
-        function setupStarRatings() {
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('star')) {
-                    const rating = e.target.getAttribute('data-value');
-                    const ratingType = e.target.parentElement.getAttribute('data-rating');
-                    setStarRating(ratingType, rating);
-                }
-            });
-        }
-
-        function setStarRating(type, value) {
-            const container = document.querySelector(`[data-rating="${type}"]`);
-            if (!container) return;
-            
-            const stars = container.querySelectorAll('.star');
-            stars.forEach((star, index) => {
-                if (index < value) {
-                    star.classList.add('active');
-                } else {
-                    star.classList.remove('active');
-                }
-            });
-            
-            // Update hidden input
-            const input = document.getElementById(type + 'Rating');
-            if (input) input.value = value;
-        }
-
-        // Geocoding
-        async function geocodeAddress(address) {
-            try {
-                const query = encodeURIComponent(address + ', Paris, France');
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`);
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    return {
-                        lat: parseFloat(data[0].lat),
-                        lng: parseFloat(data[0].lon)
-                    };
-                }
-            } catch (error) {
-                console.warn('Geocoding failed for:', address, error);
-            }
-            
-            return { lat: 48.8566, lng: 2.3522 }; // Default Paris
-        }
-
-        // Show on map
-        function showOnMap(lat, lng) {
-            document.querySelector('#map-tab').click();
-            if (!map) {
-                setTimeout(() => {
-                    initMap();
-                    setTimeout(() => map.setView([lat, lng], 16), 500);
-                }, 100);
-            } else {
-                map.setView([lat, lng], 16);
-            }
-        }
-
-        // Initialize map
-        function initMap() {
-            map = L.map('map').setView([48.8566, 2.3522], 12);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
-            // Add tested restaurants
-            restaurantsData.tested.forEach(restaurant => {
-                if (restaurant.coordinates) {
-                    const finalRating = calculateFinalRating(restaurant.ratings);
-                    const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
-
-                    marker.bindPopup(`
-                        <div style="min-width: 200px;">
-                            <h6><strong>${restaurant.name}</strong></h6>
-                            <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
-                            <p class="mb-2">${restaurant.location}</p>
-                            <div>${generateStars(finalRating)} ${finalRating}/5</div>
-                            ${restaurant.comment ? `<p class="small mt-2"><em>"${restaurant.comment}"</em></p>` : ''}
-                        </div>
-                    `);
-                }
-            });
-
-            // Add wishlist
-            restaurantsData.wishlist.forEach(restaurant => {
-                if (restaurant.coordinates) {
-                    const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
-                    marker.bindPopup(`
-                        <div style="min-width: 200px;">
-                            <h6><strong>${restaurant.name}</strong></h6>
-                            <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
-                            <p class="mb-2">${restaurant.location}</p>
-                            <div class="alert alert-info mb-0 py-2">
-                                ❤️ <strong>À tester</strong><br>
-                                ${restaurant.reason ? `<small>${restaurant.reason}</small>` : ''}
-                            </div>
-                        </div>
-                    `);
-                }
-            });
-        }
-
-        // Toast notifications
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed`;
-            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
-            toast.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            document.body.appendChild(toast);
-            
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-            
-            toast.addEventListener('hidden.bs.toast', () => {
-                document.body.removeChild(toast);
-            });
-        }
-
-        // Geolocation (simplified)
-        function getUserLocation() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        showToast('Position détectée !', 'info');
-                        // Add logic to find nearby restaurants
-                    },
-                    error => showToast("Impossible d'obtenir votre position.", 'warning')
-                );
-            }
-        }
-
-        // Initialize everything
-        document.addEventListener('DOMContentLoaded', function() {
-            renderSections();
-            setupStarRatings();
-            
-            // Floating button logic
-            document.getElementById('addFloatingBtn').addEventListener('click', function() {
-                const activeTab = document.querySelector('.nav-link.active').id;
-                const type = activeTab.includes('wishlist') ? 'wishlist' : 'tested';
-                openAddModal(type);
-            });
-            
-            // Geolocation button
-            document.getElementById('findNearbyHero').addEventListener('click', getUserLocation);
-
-            // Initialize map when tab is first clicked
-            document.getElementById('map-tab').addEventListener('shown.bs.tab', function() {
-                if (!map) {
-                    setTimeout(initMap, 100);
-                }
-            });
-
-            // Welcome message for first time users
-            if (restaurantsData.tested.length === 0 && restaurantsData.wishlist.length === 0) {
-                setTimeout(() => {
-                    showToast('Bienvenue ! Commencez par ajouter votre premier restaurant 🍽️', 'info');
-                }, 1000);
-            }
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
