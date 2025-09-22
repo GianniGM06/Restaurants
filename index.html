@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Carnet Gastro</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        :root {
+            --bs-primary: #0d6efd;
+            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            background: var(--gradient-bg);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        .hero-section {
+            background: var(--gradient-bg);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .stats-card {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            transition: transform 0.3s;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .restaurant-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
+        .wishlist-card {
+            border-left: 4px solid #198754;
+            background: linear-gradient(45deg, #f8fff9, #d1e7dd);
+        }
+
+        .rating-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .final-rating {
+            background: var(--bs-primary);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+
+
+        .import-zone {
+            border: 2px dashed #dee2e6;
+            padding: 3rem;
+            text-align: center;
+            border-radius: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .import-zone:hover {
+            border-color: var(--bs-primary);
+            background: rgba(13, 110, 253, 0.05);
+        }
+
+        .import-zone.dragover {
+            border-color: var(--bs-success);
+            background: rgba(25, 135, 84, 0.1);
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 10px;
+        }
+
+        .location-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 50px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .stars {
+            color: #ffc107;
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 2rem 1rem;
+            }
+            
+            .main-container {
+                margin: 1rem 0;
+                border-radius: 0;
+            }
+            
+            .location-btn {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3" href="#">
+                <i class="bi bi-cup-hot text-primary"></i>
+                Mon Carnet Gastro
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#tested">Testés</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#wishlist">Envies</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#map-section">Carte</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#import">Import</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="margin-top: 80px;">
+        <div class="main-container">
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro Parisien</h1>
+                <p class="fs-5 mb-4">Découvrez, notez et partagez vos meilleures adresses culinaires</p>
+                <button id="findNearbyHero" class="btn btn-light btn-lg">
+                    <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
+                </button>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="container py-5">
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-star-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="tested-count">3</h2>
+                                <p class="card-text">Restaurants testés</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-heart-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="wishlist-count">3</h2>
+                                <p class="card-text">Dans ma wishlist</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-trophy-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="avg-rating">4.2</h2>
+                                <p class="card-text">Note moyenne</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-geo-alt-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="user-distance">--</h2>
+                                <p class="card-text">Distance parcourue</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="container">
+                <ul class="nav nav-pills nav-fill mb-4" id="mainTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tested-tab" data-bs-toggle="pill" data-bs-target="#tested" type="button">
+                            <i class="bi bi-star-fill"></i> Restaurants Testés
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="wishlist-tab" data-bs-toggle="pill" data-bs-target="#wishlist" type="button">
+                            <i class="bi bi-heart-fill"></i> Ma Wishlist
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="map-tab" data-bs-toggle="pill" data-bs-target="#map-section" type="button">
+                            <i class="bi bi-geo-alt-fill"></i> Carte Interactive
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="import-tab" data-bs-toggle="pill" data-bs-target="#import" type="button">
+                            <i class="bi bi-cloud-upload-fill"></i> Import Google Maps
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content p-4" id="mainTabContent">
+                <!-- Tested Restaurants -->
+                <div class="tab-pane fade show active" id="tested" role="tabpanel">
+                    <h3 class="mb-4">🌟 Mes Découvertes</h3>
+                    <div class="row" id="tested-grid">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Wishlist -->
+                <div class="tab-pane fade" id="wishlist" role="tabpanel">
+                    <h3 class="mb-4">❤️ Ma Liste d'Envies</h3>
+                    <div class="row" id="wishlist-grid">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="tab-pane fade" id="map-section" role="tabpanel">
+                    <h3 class="mb-4">🗺️ Carte Interactive</h3>
+                    <div id="map"></div>
+                </div>
+
+                <!-- Import -->
+                <div class="tab-pane fade" id="import" role="tabpanel">
+                    <h3 class="mb-4">📤 Import Google Maps</h3>
+                    
+                    <div class="row">
+                        <div class="col-lg-8 mx-auto">
+                            <div class="import-zone" id="importZone">
+                                <i class="bi bi-cloud-upload fs-1 text-primary mb-3"></i>
+                                <h4>Glissez vos fichiers ici</h4>
+                                <p class="text-muted mb-3">ou cliquez pour sélectionner</p>
+                                <p><small>Formats acceptés: .txt, .csv, .json</small></p>
+                            </div>
+                            <input type="file" id="fileInput" accept=".txt,.csv,.json" style="display: none;">
+                        </div>
+                    </div>
+
+                    <div class="row mt-5">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h5><i class="bi bi-phone"></i> Depuis mobile</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ol>
+                                        <li>Ouvrez Google Maps</li>
+                                        <li>Menu → "Vos listes"</li>
+                                        <li>Sélectionnez une liste</li>
+                                        <li>⋮ → "Exporter"</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h5><i class="bi bi-laptop"></i> Depuis ordinateur</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ol>
+                                        <li>Google Maps → Menu</li>
+                                        <li>"Vos listes sauvegardées"</li>
+                                        <li>Sélectionner → "Partager"</li>
+                                        <li>"Copier le lien" ou "Exporter"</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Location Button -->
+    <button id="findNearbyFloat" class="btn btn-primary location-btn">
+        <i class="bi bi-geo-alt-fill"></i>
+    </button>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Restaurant data
+        let restaurantsData = {
+            tested: [
+                {
+                    id: 1,
+                    name: "Le Comptoir du Relais",
+                    type: "français",
+                    location: "6ème arrondissement",
+                    address: "9 Carrefour de l'Odéon, 75006 Paris",
+                    coordinates: { lat: 48.8534, lng: 2.3387 },
+                    ratings: { plats: 4.5, vins: 4.0, accueil: 4.5, lieu: 4.0 },
+                    comment: "Bistrot authentique avec une cuisine excellente. L'ambiance est parfaite !",
+                    dateVisited: "2024-12-15",
+                    priceRange: "€€",
+                    photos: ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=250&fit=crop"]
+                },
+                {
+                    id: 2,
+                    name: "Pink Mamma",
+                    type: "italien",
+                    location: "Pigalle", 
+                    address: "20 bis rue de Douai, 75009 Paris",
+                    coordinates: { lat: 48.8814, lng: 2.3346 },
+                    ratings: { plats: 4.0, vins: 3.5, accueil: 4.0, lieu: 5.0 },
+                    comment: "Décor incroyable ! Les pizzas sont bonnes mais l'attente peut être longue.",
+                    dateVisited: "2024-11-28",
+                    priceRange: "€€€",
+                    photos: ["https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=250&fit=crop"]
+                },
+                {
+                    id: 3,
+                    name: "Breizh Café",
+                    type: "français",
+                    location: "3ème arrondissement",
+                    address: "109 rue Vieille du Temple, 75003 Paris", 
+                    coordinates: { lat: 48.8608, lng: 2.3628 },
+                    ratings: { plats: 5.0, vins: 3.0, accueil: 4.0, lieu: 3.5 },
+                    comment: "Les meilleures crêpes de Paris ! Version moderne et raffinée.",
+                    dateVisited: "2024-10-12",
+                    priceRange: "€€",
+                    photos: ["https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=400&h=250&fit=crop"]
+                }
+            ],
+            wishlist: [
+                {
+                    id: 4,
+                    name: "L'Ami Jean",
+                    type: "français",
+                    location: "7ème arrondissement",
+                    address: "27 rue Malar, 75007 Paris",
+                    coordinates: { lat: 48.8584, lng: 2.3019 },
+                    reason: "Recommandé par un ami pour la cuisine basque",
+                    addedDate: "2024-12-01",
+                    priceRange: "€€€"
+                },
+                {
+                    id: 5,
+                    name: "Yam'Tcha", 
+                    type: "asiatique",
+                    location: "1er arrondissement",
+                    address: "4 rue Sauval, 75001 Paris",
+                    coordinates: { lat: 48.8644, lng: 2.3364 },
+                    reason: "Cuisine franco-chinoise étoilée, accord thés",
+                    addedDate: "2024-11-15",
+                    priceRange: "€€€€"
+                },
+                {
+                    id: 6,
+                    name: "Du Pain et des Idées",
+                    type: "français", 
+                    location: "10ème arrondissement",
+                    address: "34 rue Yves Toudic, 75010 Paris",
+                    coordinates: { lat: 48.8701, lng: 2.3621 },
+                    reason: "Meilleure boulangerie de Paris selon Time Out",
+                    addedDate: "2024-12-20",
+                    priceRange: "€"
+                }
+            ]
+        };
+
+        let map;
+        let userLocation = null;
+        let userMarker = null;
+
+        // Calculate final rating
+        function calculateFinalRating(ratings) {
+            const weighted = (ratings.plats * 2 + ratings.vins * 1.5 + ratings.accueil * 1.5 + ratings.lieu * 1) / 6;
+            return Math.round(weighted * 10) / 10;
+        }
+
+        // Generate stars
+        function generateStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    stars += '<i class="bi bi-star-fill"></i>';
+                } else if (i - 0.5 <= rating) {
+                    stars += '<i class="bi bi-star-half"></i>';
+                } else {
+                    stars += '<i class="bi bi-star"></i>';
+                }
+            }
+            return stars;
+        }
+
+        // Get cuisine badge color
+        function getCuisineBadge(type) {
+            const badges = {
+                'français': 'bg-primary',
+                'italien': 'bg-success', 
+                'asiatique': 'bg-danger',
+                'japonais': 'bg-warning',
+                'indien': 'bg-info'
+            };
+            return badges[type] || 'bg-secondary';
+        }
+
+
+
+        // Create restaurant cards
+        function createTestedCard(restaurant) {
+            const finalRating = calculateFinalRating(restaurant.ratings);
+            
+            return `
+                <div class="col-md-6 mb-4">
+                    <div class="card restaurant-card h-100">
+                        <img src="${restaurant.photos[0]}" class="card-img-top" alt="${restaurant.name}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">${restaurant.name}</h5>
+                                <span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span>
+                            </div>
+                            <p class="card-text text-muted">
+                                <i class="bi bi-geo-alt"></i> ${restaurant.location}
+                            </p>
+                            
+                            <div class="rating-section">
+                                <div class="row mb-2">
+                                    <div class="col-8"><small>🍽️ Plats (x2)</small></div>
+                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.plats)}</span></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-8"><small>🍷 Vins (x1.5)</small></div>
+                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.vins)}</span></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-8"><small>😊 Accueil (x1.5)</small></div>
+                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.accueil)}</span></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-8"><small>🏛️ Lieu (x1)</small></div>
+                                    <div class="col-4 text-end"><span class="stars">${generateStars(restaurant.ratings.lieu)}</span></div>
+                                </div>
+                            </div>
+
+                            <div class="final-rating">
+                                <strong>${finalRating}/5</strong> ${generateStars(finalRating)}
+                            </div>
+
+                            <blockquote class="blockquote-footer mt-3">
+                                "${restaurant.comment}"
+                            </blockquote>
+
+                            <div class="mt-3">
+                                <button class="btn btn-outline-primary btn-sm" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
+                                    <i class="bi bi-geo-alt"></i> Voir sur carte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createWishlistCard(restaurant) {
+            return `
+                <div class="col-md-6 mb-4">
+                    <div class="card restaurant-card wishlist-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">${restaurant.name}</h5>
+                                <span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span>
+                            </div>
+                            <p class="card-text text-muted">
+                                <i class="bi bi-geo-alt"></i> ${restaurant.location}
+                            </p>
+                            <div class="alert alert-success">
+                                <strong>💡 Pourquoi :</strong><br>
+                                ${restaurant.reason}
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-outline-success btn-sm" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
+                                    <i class="bi bi-geo-alt"></i> Localiser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show on map
+        function showOnMap(lat, lng) {
+            document.querySelector('#map-tab').click();
+            if (!map) {
+                setTimeout(() => {
+                    initMap();
+                    setTimeout(() => map.setView([lat, lng], 16), 500);
+                }, 100);
+            } else {
+                map.setView([lat, lng], 16);
+            }
+        }
+
+        // Geolocation
+        function getUserLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        findNearbyRestaurants();
+                        updateMapWithUserLocation();
+                    },
+                    error => alert("Impossible d'obtenir votre position. Vérifiez les autorisations."),
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                alert("Géolocalisation non supportée par votre navigateur");
+            }
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function findNearbyRestaurants() {
+            if (!userLocation) return;
+
+            const nearby = [];
+            restaurantsData.tested.forEach(restaurant => {
+                const distance = calculateDistance(
+                    userLocation.lat, userLocation.lng,
+                    restaurant.coordinates.lat, restaurant.coordinates.lng
+                );
+                if (distance <= 5) { // 5km radius
+                    nearby.push({...restaurant, distance});
+                }
+            });
+
+            nearby.sort((a, b) => a.distance - b.distance);
+
+            if (nearby.length > 0) {
+                const nearest = nearby[0];
+                alert(`Restaurant le plus proche: ${nearest.name} (${nearest.distance.toFixed(1)}km)`);
+                
+                const totalDistance = nearby.reduce((sum, r) => sum + r.distance, 0);
+                document.getElementById('user-distance').textContent = totalDistance.toFixed(1) + 'km';
+            } else {
+                alert("Aucun restaurant testé dans un rayon de 5km");
+            }
+        }
+
+        function updateMapWithUserLocation() {
+            if (map && userLocation) {
+                if (userMarker) map.removeLayer(userMarker);
+                
+                userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                    icon: L.divIcon({
+                        html: '<div style="background: #007bff; border: 3px solid white; border-radius: 50%; width: 15px; height: 15px;"></div>',
+                        iconSize: [15, 15],
+                        className: 'user-location'
+                    })
+                }).addTo(map);
+                
+                userMarker.bindPopup('<b>📍 Votre position</b>');
+                map.setView([userLocation.lat, userLocation.lng], 13);
+            }
+        }
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([48.8566, 2.3522], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add restaurants
+            restaurantsData.tested.forEach(restaurant => {
+                const finalRating = calculateFinalRating(restaurant.ratings);
+                const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
+
+                marker.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h6><strong>${restaurant.name}</strong></h6>
+                        <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
+                        <p class="mb-2">${restaurant.location}</p>
+                        <div>${generateStars(finalRating)} ${finalRating}/5</div>
+                        <p class="small mt-2"><em>"${restaurant.comment}"</em></p>
+                    </div>
+                `);
+            });
+
+            // Add wishlist
+            restaurantsData.wishlist.forEach(restaurant => {
+                const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
+                marker.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h6><strong>${restaurant.name}</strong></h6>
+                        <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
+                        <p class="mb-2">${restaurant.location}</p>
+                        <div class="alert alert-info mb-0 py-2">
+                            ❤️ <strong>À tester</strong><br>
+                            <small>${restaurant.reason}</small>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        // File import
+        function setupImport() {
+            const zone = document.getElementById('importZone');
+            const input = document.getElementById('fileInput');
+
+            zone.addEventListener('click', () => input.click());
+            
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+            
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    processFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            input.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    processFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    let imported = [];
+
+                    if (file.name.endsWith('.json')) {
+                        imported = JSON.parse(content);
+                    } else {
+                        // Parse text files
+                        const lines = content.split('\n').filter(line => line.trim());
+                        imported = lines.map(line => {
+                            const parts = line.split(',');
+                            return {
+                                name: parts[0]?.trim(),
+                                location: parts[1]?.trim() || 'Paris',
+                                source: 'Google Maps Import'
+                            };
+                        }).filter(item => item.name);
+                    }
+
+                    if (imported.length > 0) {
+                        alert(`✅ ${imported.length} restaurants importés avec succès !`);
+                        console.log('Imported:', imported);
+                    }
+                } catch (error) {
+                    alert('❌ Erreur lors de l\'importation : ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Initialize sections
+        function initSections() {
+            document.getElementById('tested-grid').innerHTML = restaurantsData.tested.map(createTestedCard).join('');
+            document.getElementById('wishlist-grid').innerHTML = restaurantsData.wishlist.map(createWishlistCard).join('');
+            
+            // Update stats
+            document.getElementById('tested-count').textContent = restaurantsData.tested.length;
+            document.getElementById('wishlist-count').textContent = restaurantsData.wishlist.length;
+            
+            const avgRating = restaurantsData.tested.reduce((sum, r) => sum + calculateFinalRating(r.ratings), 0) / restaurantsData.tested.length;
+            document.getElementById('avg-rating').textContent = Math.round(avgRating * 10) / 10;
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initSections();
+            setupImport();
+            
+            // Geolocation buttons
+            document.getElementById('findNearbyHero').addEventListener('click', getUserLocation);
+            document.getElementById('findNearbyFloat').addEventListener('click', getUserLocation);
+
+            // Initialize map when tab is shown
+            document.getElementById('map-tab').addEventListener('shown.bs.tab', function() {
+                if (!map) {
+                    setTimeout(initMap, 100);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
