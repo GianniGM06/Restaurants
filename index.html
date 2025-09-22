@@ -87,25 +87,29 @@
             font-weight: bold;
         }
 
-
-
-        .import-zone {
-            border: 2px dashed #dee2e6;
-            padding: 3rem;
-            text-align: center;
-            border-radius: 10px;
-            transition: all 0.3s;
-            cursor: pointer;
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 15px;
+            flex-wrap: wrap;
         }
 
-        .import-zone:hover {
-            border-color: var(--bs-primary);
-            background: rgba(13, 110, 253, 0.05);
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 15px;
         }
 
-        .import-zone.dragover {
-            border-color: var(--bs-success);
-            background: rgba(25, 135, 84, 0.1);
+        .add-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
         }
 
         #map {
@@ -113,18 +117,46 @@
             border-radius: 10px;
         }
 
-        .location-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            border-radius: 50px;
-            padding: 15px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
         .stars {
             color: #ffc107;
+        }
+
+        .modal-header {
+            background: var(--gradient-bg);
+            color: white;
+        }
+
+        .rating-input {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .star-rating {
+            display: inline-flex;
+            font-size: 20px;
+        }
+
+        .star-rating .star {
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .star-rating .star.active,
+        .star-rating .star:hover {
+            color: #ffc107;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
         }
 
         @media (max-width: 768px) {
@@ -137,10 +169,16 @@
                 border-radius: 0;
             }
             
-            .location-btn {
+            .add-button {
                 bottom: 10px;
                 right: 10px;
-                padding: 10px 15px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            .action-buttons {
+                justify-content: center;
             }
         }
     </style>
@@ -167,9 +205,6 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#map-section">Carte</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#import">Import</a>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -193,7 +228,7 @@
                         <div class="card stats-card text-center h-100">
                             <div class="card-body">
                                 <i class="bi bi-star-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="tested-count">3</h2>
+                                <h2 class="card-title" id="tested-count">0</h2>
                                 <p class="card-text">Restaurants testés</p>
                             </div>
                         </div>
@@ -202,7 +237,7 @@
                         <div class="card stats-card text-center h-100">
                             <div class="card-body">
                                 <i class="bi bi-heart-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="wishlist-count">3</h2>
+                                <h2 class="card-title" id="wishlist-count">0</h2>
                                 <p class="card-text">Dans ma wishlist</p>
                             </div>
                         </div>
@@ -211,7 +246,7 @@
                         <div class="card stats-card text-center h-100">
                             <div class="card-body">
                                 <i class="bi bi-trophy-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="avg-rating">4.2</h2>
+                                <h2 class="card-title" id="avg-rating">--</h2>
                                 <p class="card-text">Note moyenne</p>
                             </div>
                         </div>
@@ -246,11 +281,6 @@
                             <i class="bi bi-geo-alt-fill"></i> Carte Interactive
                         </button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="import-tab" data-bs-toggle="pill" data-bs-target="#import" type="button">
-                            <i class="bi bi-cloud-upload-fill"></i> Import Google Maps
-                        </button>
-                    </li>
                 </ul>
             </div>
 
@@ -258,7 +288,12 @@
             <div class="tab-content p-4" id="mainTabContent">
                 <!-- Tested Restaurants -->
                 <div class="tab-pane fade show active" id="tested" role="tabpanel">
-                    <h3 class="mb-4">🌟 Mes Découvertes</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>🌟 Mes Découvertes</h3>
+                        <button class="btn btn-primary" onclick="openAddModal('tested')">
+                            <i class="bi bi-plus-lg"></i> Ajouter un restaurant
+                        </button>
+                    </div>
                     <div class="row" id="tested-grid">
                         <!-- Generated by JavaScript -->
                     </div>
@@ -266,7 +301,12 @@
 
                 <!-- Wishlist -->
                 <div class="tab-pane fade" id="wishlist" role="tabpanel">
-                    <h3 class="mb-4">❤️ Ma Liste d'Envies</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>❤️ Ma Liste d'Envies</h3>
+                        <button class="btn btn-success" onclick="openAddModal('wishlist')">
+                            <i class="bi bi-plus-lg"></i> Ajouter une envie
+                        </button>
+                    </div>
                     <div class="row" id="wishlist-grid">
                         <!-- Generated by JavaScript -->
                     </div>
@@ -277,155 +317,249 @@
                     <h3 class="mb-4">🗺️ Carte Interactive</h3>
                     <div id="map"></div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Import -->
-                <div class="tab-pane fade" id="import" role="tabpanel">
-                    <h3 class="mb-4">📤 Import Google Maps</h3>
-                    
-                    <div class="row">
-                        <div class="col-lg-8 mx-auto">
-                            <div class="import-zone" id="importZone">
-                                <i class="bi bi-cloud-upload fs-1 text-primary mb-3"></i>
-                                <h4>Glissez vos fichiers ici</h4>
-                                <p class="text-muted mb-3">ou cliquez pour sélectionner</p>
-                                <p><small>Formats acceptés: .txt, .csv, .json</small></p>
-                            </div>
-                            <input type="file" id="fileInput" accept=".txt,.csv,.json" style="display: none;">
-                        </div>
-                    </div>
+    <!-- Floating Add Button -->
+    <button id="addFloatingBtn" class="btn btn-primary add-button" title="Ajouter">
+        <i class="bi bi-plus-lg"></i>
+    </button>
 
-                    <div class="row mt-5">
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header bg-primary text-white">
-                                    <h5><i class="bi bi-phone"></i> Depuis mobile</h5>
+    <!-- Modal Add/Edit Restaurant -->
+    <div class="modal fade" id="restaurantModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Ajouter un restaurant</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="restaurantForm">
+                        <input type="hidden" id="editId">
+                        <input type="hidden" id="modalType">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Nom du restaurant *</label>
+                                <input type="text" class="form-control" id="name" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Type de cuisine *</label>
+                                <select class="form-control" id="type" required>
+                                    <option value="">Choisir...</option>
+                                    <option value="français">🥖 Français</option>
+                                    <option value="italien">🍕 Italien</option>
+                                    <option value="asiatique">🍜 Asiatique</option>
+                                    <option value="japonais">🍣 Japonais</option>
+                                    <option value="indien">🍛 Indien</option>
+                                    <option value="mexicain">🌮 Mexicain</option>
+                                    <option value="libanais">🥙 Libanais</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Localisation *</label>
+                                <input type="text" class="form-control" id="location" placeholder="ex: 6ème arrondissement" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Prix</label>
+                                <select class="form-control" id="priceRange">
+                                    <option value="€">€ (moins de 20€)</option>
+                                    <option value="€€" selected>€€ (20-40€)</option>
+                                    <option value="€€€">€€€ (40-80€)</option>
+                                    <option value="€€€€">€€€€ (plus de 80€)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Adresse complète</label>
+                            <input type="text" class="form-control" id="address" placeholder="Pour géolocalisation automatique">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Photo (URL)</label>
+                            <input type="url" class="form-control" id="photo" placeholder="https://...">
+                        </div>
+
+                        <!-- Ratings section (only for tested restaurants) -->
+                        <div id="ratingsSection" style="display: none;">
+                            <h6 class="mb-3">📊 Notations</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">🍽️ Plats (coefficient x2)</label>
+                                    <div class="star-rating" data-rating="plats">
+                                        <span class="star" data-value="1">★</span>
+                                        <span class="star" data-value="2">★</span>
+                                        <span class="star" data-value="3">★</span>
+                                        <span class="star" data-value="4">★</span>
+                                        <span class="star" data-value="5">★</span>
+                                    </div>
+                                    <input type="hidden" id="platsRating" value="5">
                                 </div>
-                                <div class="card-body">
-                                    <ol>
-                                        <li>Ouvrez Google Maps</li>
-                                        <li>Menu → "Vos listes"</li>
-                                        <li>Sélectionnez une liste</li>
-                                        <li>⋮ → "Exporter"</li>
-                                    </ol>
+                                <div class="col-md-6">
+                                    <label class="form-label">🍷 Vins (coefficient x1.5)</label>
+                                    <div class="star-rating" data-rating="vins">
+                                        <span class="star" data-value="1">★</span>
+                                        <span class="star" data-value="2">★</span>
+                                        <span class="star" data-value="3">★</span>
+                                        <span class="star" data-value="4">★</span>
+                                        <span class="star" data-value="5">★</span>
+                                    </div>
+                                    <input type="hidden" id="vinsRating" value="5">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">😊 Accueil (coefficient x1.5)</label>
+                                    <div class="star-rating" data-rating="accueil">
+                                        <span class="star" data-value="1">★</span>
+                                        <span class="star" data-value="2">★</span>
+                                        <span class="star" data-value="3">★</span>
+                                        <span class="star" data-value="4">★</span>
+                                        <span class="star" data-value="5">★</span>
+                                    </div>
+                                    <input type="hidden" id="accueilRating" value="5">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">🏛️ Lieu (coefficient x1)</label>
+                                    <div class="star-rating" data-rating="lieu">
+                                        <span class="star" data-value="1">★</span>
+                                        <span class="star" data-value="2">★</span>
+                                        <span class="star" data-value="3">★</span>
+                                        <span class="star" data-value="4">★</span>
+                                        <span class="star" data-value="5">★</span>
+                                    </div>
+                                    <input type="hidden" id="lieuRating" value="5">
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header bg-success text-white">
-                                    <h5><i class="bi bi-laptop"></i> Depuis ordinateur</h5>
-                                </div>
-                                <div class="card-body">
-                                    <ol>
-                                        <li>Google Maps → Menu</li>
-                                        <li>"Vos listes sauvegardées"</li>
-                                        <li>Sélectionner → "Partager"</li>
-                                        <li>"Copier le lien" ou "Exporter"</li>
-                                    </ol>
-                                </div>
+
+                        <!-- Wishlist specific fields -->
+                        <div id="wishlistSection" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">💡 Pourquoi voulez-vous tester ce restaurant ?</label>
+                                <textarea class="form-control" id="reason" rows="2" placeholder="ex: Recommandé par un ami..."></textarea>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Comment section -->
+                        <div class="mb-3">
+                            <label class="form-label">💬 Commentaire</label>
+                            <textarea class="form-control" id="comment" rows="3" placeholder="Vos impressions, recommandations..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="saveRestaurant()">Enregistrer</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Floating Location Button -->
-    <button id="findNearbyFloat" class="btn btn-primary location-btn">
-        <i class="bi bi-geo-alt-fill"></i>
-    </button>
+    <!-- Modal Transfer to Tested -->
+    <div class="modal fade" id="transferModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🌟 Transférer vers "Testés"</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Ajoutez vos notes pour <strong id="transferRestaurantName"></strong> :</p>
+                    <form id="transferForm">
+                        <input type="hidden" id="transferId">
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">🍽️ Plats (x2)</label>
+                                <div class="star-rating" data-rating="transferPlats">
+                                    <span class="star" data-value="1">★</span>
+                                    <span class="star" data-value="2">★</span>
+                                    <span class="star" data-value="3">★</span>
+                                    <span class="star" data-value="4">★</span>
+                                    <span class="star" data-value="5">★</span>
+                                </div>
+                                <input type="hidden" id="transferPlatsRating" value="5">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">🍷 Vins (x1.5)</label>
+                                <div class="star-rating" data-rating="transferVins">
+                                    <span class="star" data-value="1">★</span>
+                                    <span class="star" data-value="2">★</span>
+                                    <span class="star" data-value="3">★</span>
+                                    <span class="star" data-value="4">★</span>
+                                    <span class="star" data-value="5">★</span>
+                                </div>
+                                <input type="hidden" id="transferVinsRating" value="5">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">😊 Accueil (x1.5)</label>
+                                <div class="star-rating" data-rating="transferAccueil">
+                                    <span class="star" data-value="1">★</span>
+                                    <span class="star" data-value="2">★</span>
+                                    <span class="star" data-value="3">★</span>
+                                    <span class="star" data-value="4">★</span>
+                                    <span class="star" data-value="5">★</span>
+                                </div>
+                                <input type="hidden" id="transferAccueilRating" value="5">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">🏛️ Lieu (x1)</label>
+                                <div class="star-rating" data-rating="transferLieu">
+                                    <span class="star" data-value="1">★</span>
+                                    <span class="star" data-value="2">★</span>
+                                    <span class="star" data-value="3">★</span>
+                                    <span class="star" data-value="4">★</span>
+                                    <span class="star" data-value="5">★</span>
+                                </div>
+                                <input type="hidden" id="transferLieuRating" value="5">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">💬 Votre avis après visite</label>
+                            <textarea class="form-control" id="transferComment" rows="3" placeholder="Comment s'est passée votre expérience ?"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" onclick="transferToTested()">
+                        <i class="bi bi-arrow-right"></i> Transférer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Restaurant data
+        // Data storage
         let restaurantsData = {
-            tested: [
-                {
-                    id: 1,
-                    name: "Le Comptoir du Relais",
-                    type: "français",
-                    location: "6ème arrondissement",
-                    address: "9 Carrefour de l'Odéon, 75006 Paris",
-                    coordinates: { lat: 48.8534, lng: 2.3387 },
-                    ratings: { plats: 4.5, vins: 4.0, accueil: 4.5, lieu: 4.0 },
-                    comment: "Bistrot authentique avec une cuisine excellente. L'ambiance est parfaite !",
-                    dateVisited: "2024-12-15",
-                    priceRange: "€€",
-                    photos: ["https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=250&fit=crop"]
-                },
-                {
-                    id: 2,
-                    name: "Pink Mamma",
-                    type: "italien",
-                    location: "Pigalle", 
-                    address: "20 bis rue de Douai, 75009 Paris",
-                    coordinates: { lat: 48.8814, lng: 2.3346 },
-                    ratings: { plats: 4.0, vins: 3.5, accueil: 4.0, lieu: 5.0 },
-                    comment: "Décor incroyable ! Les pizzas sont bonnes mais l'attente peut être longue.",
-                    dateVisited: "2024-11-28",
-                    priceRange: "€€€",
-                    photos: ["https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=250&fit=crop"]
-                },
-                {
-                    id: 3,
-                    name: "Breizh Café",
-                    type: "français",
-                    location: "3ème arrondissement",
-                    address: "109 rue Vieille du Temple, 75003 Paris", 
-                    coordinates: { lat: 48.8608, lng: 2.3628 },
-                    ratings: { plats: 5.0, vins: 3.0, accueil: 4.0, lieu: 3.5 },
-                    comment: "Les meilleures crêpes de Paris ! Version moderne et raffinée.",
-                    dateVisited: "2024-10-12",
-                    priceRange: "€€",
-                    photos: ["https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=400&h=250&fit=crop"]
-                }
-            ],
-            wishlist: [
-                {
-                    id: 4,
-                    name: "L'Ami Jean",
-                    type: "français",
-                    location: "7ème arrondissement",
-                    address: "27 rue Malar, 75007 Paris",
-                    coordinates: { lat: 48.8584, lng: 2.3019 },
-                    reason: "Recommandé par un ami pour la cuisine basque",
-                    addedDate: "2024-12-01",
-                    priceRange: "€€€"
-                },
-                {
-                    id: 5,
-                    name: "Yam'Tcha", 
-                    type: "asiatique",
-                    location: "1er arrondissement",
-                    address: "4 rue Sauval, 75001 Paris",
-                    coordinates: { lat: 48.8644, lng: 2.3364 },
-                    reason: "Cuisine franco-chinoise étoilée, accord thés",
-                    addedDate: "2024-11-15",
-                    priceRange: "€€€€"
-                },
-                {
-                    id: 6,
-                    name: "Du Pain et des Idées",
-                    type: "français", 
-                    location: "10ème arrondissement",
-                    address: "34 rue Yves Toudic, 75010 Paris",
-                    coordinates: { lat: 48.8701, lng: 2.3621 },
-                    reason: "Meilleure boulangerie de Paris selon Time Out",
-                    addedDate: "2024-12-20",
-                    priceRange: "€"
-                }
-            ]
+            tested: JSON.parse(localStorage.getItem('testedRestaurants') || '[]'),
+            wishlist: JSON.parse(localStorage.getItem('wishlistRestaurants') || '[]')
         };
 
         let map;
         let userLocation = null;
-        let userMarker = null;
+        let editingId = null;
 
-        // Calculate final rating
+        // Save to localStorage
+        function saveData() {
+            localStorage.setItem('testedRestaurants', JSON.stringify(restaurantsData.tested));
+            localStorage.setItem('wishlistRestaurants', JSON.stringify(restaurantsData.wishlist));
+        }
+
+        // Calculate weighted final rating
         function calculateFinalRating(ratings) {
             const weighted = (ratings.plats * 2 + ratings.vins * 1.5 + ratings.accueil * 1.5 + ratings.lieu * 1) / 6;
             return Math.round(weighted * 10) / 10;
@@ -453,21 +587,22 @@
                 'italien': 'bg-success', 
                 'asiatique': 'bg-danger',
                 'japonais': 'bg-warning',
-                'indien': 'bg-info'
+                'indien': 'bg-info',
+                'mexicain': 'bg-dark',
+                'libanais': 'bg-secondary'
             };
             return badges[type] || 'bg-secondary';
         }
 
-
-
-        // Create restaurant cards
+        // Create tested restaurant card
         function createTestedCard(restaurant) {
             const finalRating = calculateFinalRating(restaurant.ratings);
+            const photo = restaurant.photo || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=250&fit=crop';
             
             return `
                 <div class="col-md-6 mb-4">
                     <div class="card restaurant-card h-100">
-                        <img src="${restaurant.photos[0]}" class="card-img-top" alt="${restaurant.name}">
+                        <img src="${photo}" class="card-img-top" alt="${restaurant.name}" style="height: 200px; object-fit: cover;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h5 class="card-title">${restaurant.name}</h5>
@@ -475,6 +610,7 @@
                             </div>
                             <p class="card-text text-muted">
                                 <i class="bi bi-geo-alt"></i> ${restaurant.location}
+                                <span class="ms-2">${restaurant.priceRange || '€€'}</span>
                             </p>
                             
                             <div class="rating-section">
@@ -500,14 +636,20 @@
                                 <strong>${finalRating}/5</strong> ${generateStars(finalRating)}
                             </div>
 
-                            <blockquote class="blockquote-footer mt-3">
-                                "${restaurant.comment}"
-                            </blockquote>
+                            ${restaurant.comment ? `<blockquote class="blockquote-footer mt-3">"${restaurant.comment}"</blockquote>` : ''}
 
-                            <div class="mt-3">
-                                <button class="btn btn-outline-primary btn-sm" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
-                                    <i class="bi bi-geo-alt"></i> Voir sur carte
+                            <div class="action-buttons">
+                                <button class="btn btn-outline-primary btn-action" onclick="editRestaurant('${restaurant.id}', 'tested')">
+                                    <i class="bi bi-pencil"></i> Modifier
                                 </button>
+                                <button class="btn btn-outline-danger btn-action" onclick="deleteRestaurant('${restaurant.id}', 'tested')">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                                ${restaurant.coordinates ? `
+                                <button class="btn btn-outline-info btn-action" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
+                                    <i class="bi bi-geo-alt"></i> Carte
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -515,10 +657,14 @@
             `;
         }
 
+        // Create wishlist restaurant card
         function createWishlistCard(restaurant) {
+            const photo = restaurant.photo || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=250&fit=crop';
+            
             return `
                 <div class="col-md-6 mb-4">
                     <div class="card restaurant-card wishlist-card h-100">
+                        <img src="${photo}" class="card-img-top" alt="${restaurant.name}" style="height: 200px; object-fit: cover;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h5 class="card-title">${restaurant.name}</h5>
@@ -526,20 +672,322 @@
                             </div>
                             <p class="card-text text-muted">
                                 <i class="bi bi-geo-alt"></i> ${restaurant.location}
+                                <span class="ms-2">${restaurant.priceRange || '€€'}</span>
                             </p>
+                            ${restaurant.reason ? `
                             <div class="alert alert-success">
                                 <strong>💡 Pourquoi :</strong><br>
                                 ${restaurant.reason}
                             </div>
-                            <div class="mt-3">
-                                <button class="btn btn-outline-success btn-sm" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
-                                    <i class="bi bi-geo-alt"></i> Localiser
+                            ` : ''}
+                            ${restaurant.comment ? `<p class="text-muted"><em>"${restaurant.comment}"</em></p>` : ''}
+                            
+                            <div class="action-buttons">
+                                <button class="btn btn-success btn-action" onclick="openTransferModal('${restaurant.id}')">
+                                    <i class="bi bi-arrow-right"></i> Testé !
                                 </button>
+                                <button class="btn btn-outline-primary btn-action" onclick="editRestaurant('${restaurant.id}', 'wishlist')">
+                                    <i class="bi bi-pencil"></i> Modifier
+                                </button>
+                                <button class="btn btn-outline-danger btn-action" onclick="deleteRestaurant('${restaurant.id}', 'wishlist')">
+                                    <i class="bi bi-trash"></i> Supprimer
+                                </button>
+                                ${restaurant.coordinates ? `
+                                <button class="btn btn-outline-info btn-action" onclick="showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
+                                    <i class="bi bi-geo-alt"></i> Carte
+                                </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        // Generate empty state
+        function createEmptyState(type) {
+            const isWishlist = type === 'wishlist';
+            return `
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="bi bi-${isWishlist ? 'heart' : 'star'}"></i>
+                        <h4>Aucun restaurant ${isWishlist ? 'dans votre wishlist' : 'testé'}</h4>
+                        <p class="text-muted">
+                            ${isWishlist ? 'Commencez par ajouter des restaurants que vous aimeriez tester !' : 'Ajoutez vos premiers restaurants testés avec leurs notes !'}
+                        </p>
+                        <button class="btn btn-${isWishlist ? 'success' : 'primary'}" onclick="openAddModal('${type}')">
+                            <i class="bi bi-plus-lg"></i> ${isWishlist ? 'Ajouter une envie' : 'Ajouter un restaurant'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render sections
+        function renderSections() {
+            const testedGrid = document.getElementById('tested-grid');
+            const wishlistGrid = document.getElementById('wishlist-grid');
+
+            // Render tested restaurants
+            if (restaurantsData.tested.length === 0) {
+                testedGrid.innerHTML = createEmptyState('tested');
+            } else {
+                testedGrid.innerHTML = restaurantsData.tested.map(createTestedCard).join('');
+            }
+
+            // Render wishlist
+            if (restaurantsData.wishlist.length === 0) {
+                wishlistGrid.innerHTML = createEmptyState('wishlist');
+            } else {
+                wishlistGrid.innerHTML = restaurantsData.wishlist.map(createWishlistCard).join('');
+            }
+
+            updateStats();
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('tested-count').textContent = restaurantsData.tested.length;
+            document.getElementById('wishlist-count').textContent = restaurantsData.wishlist.length;
+
+            if (restaurantsData.tested.length > 0) {
+                const avgRating = restaurantsData.tested.reduce((sum, r) => sum + calculateFinalRating(r.ratings), 0) / restaurantsData.tested.length;
+                document.getElementById('avg-rating').textContent = Math.round(avgRating * 10) / 10;
+            } else {
+                document.getElementById('avg-rating').textContent = '--';
+            }
+        }
+
+        // Open add modal
+        function openAddModal(type) {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = type === 'tested' ? 'Ajouter un restaurant testé' : 'Ajouter à ma wishlist';
+            document.getElementById('modalType').value = type;
+            
+            // Reset form
+            document.getElementById('restaurantForm').reset();
+            document.getElementById('editId').value = '';
+            
+            // Show/hide sections
+            document.getElementById('ratingsSection').style.display = type === 'tested' ? 'block' : 'none';
+            document.getElementById('wishlistSection').style.display = type === 'wishlist' ? 'block' : 'none';
+            
+            // Set default ratings
+            if (type === 'tested') {
+                setStarRating('plats', 5);
+                setStarRating('vins', 5);
+                setStarRating('accueil', 5);
+                setStarRating('lieu', 5);
+            }
+            
+            new bootstrap.Modal(document.getElementById('restaurantModal')).show();
+        }
+
+        // Open edit modal
+        function editRestaurant(id, type) {
+            const restaurant = restaurantsData[type].find(r => r.id === id);
+            if (!restaurant) return;
+            
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Modifier ' + restaurant.name;
+            document.getElementById('modalType').value = type;
+            document.getElementById('editId').value = id;
+            
+            // Fill form
+            document.getElementById('name').value = restaurant.name;
+            document.getElementById('type').value = restaurant.type;
+            document.getElementById('location').value = restaurant.location;
+            document.getElementById('address').value = restaurant.address || '';
+            document.getElementById('photo').value = restaurant.photo || '';
+            document.getElementById('priceRange').value = restaurant.priceRange || '€€';
+            document.getElementById('comment').value = restaurant.comment || '';
+            
+            // Show/hide sections
+            document.getElementById('ratingsSection').style.display = type === 'tested' ? 'block' : 'none';
+            document.getElementById('wishlistSection').style.display = type === 'wishlist' ? 'block' : 'none';
+            
+            if (type === 'tested') {
+                setStarRating('plats', restaurant.ratings.plats);
+                setStarRating('vins', restaurant.ratings.vins);
+                setStarRating('accueil', restaurant.ratings.accueil);
+                setStarRating('lieu', restaurant.ratings.lieu);
+            } else {
+                document.getElementById('reason').value = restaurant.reason || '';
+            }
+            
+            new bootstrap.Modal(document.getElementById('restaurantModal')).show();
+        }
+
+        // Save restaurant
+        async function saveRestaurant() {
+            const form = document.getElementById('restaurantForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const type = document.getElementById('modalType').value;
+            const isEdit = !!editingId;
+            
+            const restaurantData = {
+                id: editingId || Date.now().toString(),
+                name: document.getElementById('name').value,
+                type: document.getElementById('type').value,
+                location: document.getElementById('location').value,
+                address: document.getElementById('address').value,
+                photo: document.getElementById('photo').value,
+                priceRange: document.getElementById('priceRange').value,
+                comment: document.getElementById('comment').value,
+                dateAdded: isEdit ? restaurantsData[type].find(r => r.id === editingId).dateAdded : new Date().toISOString().split('T')[0]
+            };
+
+            // Geocoding
+            if (restaurantData.address) {
+                const coords = await geocodeAddress(restaurantData.address);
+                if (coords) {
+                    restaurantData.coordinates = coords;
+                }
+            }
+
+            if (type === 'tested') {
+                restaurantData.ratings = {
+                    plats: parseInt(document.getElementById('platsRating').value),
+                    vins: parseInt(document.getElementById('vinsRating').value),
+                    accueil: parseInt(document.getElementById('accueilRating').value),
+                    lieu: parseInt(document.getElementById('lieuRating').value)
+                };
+                restaurantData.dateVisited = restaurantData.dateAdded;
+            } else {
+                restaurantData.reason = document.getElementById('reason').value;
+            }
+
+            if (isEdit) {
+                const index = restaurantsData[type].findIndex(r => r.id === editingId);
+                restaurantsData[type][index] = restaurantData;
+            } else {
+                restaurantsData[type].push(restaurantData);
+            }
+
+            saveData();
+            renderSections();
+            bootstrap.Modal.getInstance(document.getElementById('restaurantModal')).hide();
+            
+            // Show success message
+            showToast(isEdit ? 'Restaurant modifié !' : 'Restaurant ajouté !', 'success');
+        }
+
+        // Delete restaurant
+        function deleteRestaurant(id, type) {
+            const restaurant = restaurantsData[type].find(r => r.id === id);
+            if (!restaurant) return;
+            
+            if (confirm(`Êtes-vous sûr de vouloir supprimer "${restaurant.name}" ?`)) {
+                restaurantsData[type] = restaurantsData[type].filter(r => r.id !== id);
+                saveData();
+                renderSections();
+                showToast('Restaurant supprimé !', 'success');
+            }
+        }
+
+        // Open transfer modal
+        function openTransferModal(id) {
+            const restaurant = restaurantsData.wishlist.find(r => r.id === id);
+            if (!restaurant) return;
+            
+            document.getElementById('transferId').value = id;
+            document.getElementById('transferRestaurantName').textContent = restaurant.name;
+            document.getElementById('transferComment').value = '';
+            
+            // Set default ratings
+            setStarRating('transferPlats', 5);
+            setStarRating('transferVins', 5);
+            setStarRating('transferAccueil', 5);
+            setStarRating('transferLieu', 5);
+            
+            new bootstrap.Modal(document.getElementById('transferModal')).show();
+        }
+
+        // Transfer to tested
+        function transferToTested() {
+            const id = document.getElementById('transferId').value;
+            const restaurant = restaurantsData.wishlist.find(r => r.id === id);
+            if (!restaurant) return;
+            
+            const testedRestaurant = {
+                ...restaurant,
+                ratings: {
+                    plats: parseInt(document.getElementById('transferPlatsRating').value),
+                    vins: parseInt(document.getElementById('transferVinsRating').value),
+                    accueil: parseInt(document.getElementById('transferAccueilRating').value),
+                    lieu: parseInt(document.getElementById('transferLieuRating').value)
+                },
+                comment: document.getElementById('transferComment').value,
+                dateVisited: new Date().toISOString().split('T')[0]
+            };
+            
+            // Remove reason (wishlist specific)
+            delete testedRestaurant.reason;
+            
+            // Add to tested and remove from wishlist
+            restaurantsData.tested.push(testedRestaurant);
+            restaurantsData.wishlist = restaurantsData.wishlist.filter(r => r.id !== id);
+            
+            saveData();
+            renderSections();
+            bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
+            
+            // Switch to tested tab
+            document.getElementById('tested-tab').click();
+            showToast('Restaurant transféré dans "Testés" !', 'success');
+        }
+
+        // Star rating functionality
+        function setupStarRatings() {
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('star')) {
+                    const rating = e.target.getAttribute('data-value');
+                    const ratingType = e.target.parentElement.getAttribute('data-rating');
+                    setStarRating(ratingType, rating);
+                }
+            });
+        }
+
+        function setStarRating(type, value) {
+            const container = document.querySelector(`[data-rating="${type}"]`);
+            if (!container) return;
+            
+            const stars = container.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < value) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            // Update hidden input
+            const input = document.getElementById(type + 'Rating');
+            if (input) input.value = value;
+        }
+
+        // Geocoding
+        async function geocodeAddress(address) {
+            try {
+                const query = encodeURIComponent(address + ', Paris, France');
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    return {
+                        lat: parseFloat(data[0].lat),
+                        lng: parseFloat(data[0].lon)
+                    };
+                }
+            } catch (error) {
+                console.warn('Geocoding failed for:', address, error);
+            }
+            
+            return { lat: 48.8566, lng: 2.3522 }; // Default Paris
         }
 
         // Show on map
@@ -555,81 +1003,6 @@
             }
         }
 
-        // Geolocation
-        function getUserLocation() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        userLocation = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        findNearbyRestaurants();
-                        updateMapWithUserLocation();
-                    },
-                    error => alert("Impossible d'obtenir votre position. Vérifiez les autorisations."),
-                    { enableHighAccuracy: true, timeout: 10000 }
-                );
-            } else {
-                alert("Géolocalisation non supportée par votre navigateur");
-            }
-        }
-
-        function calculateDistance(lat1, lng1, lat2, lng2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLng = (lng2 - lng1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                     Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        function findNearbyRestaurants() {
-            if (!userLocation) return;
-
-            const nearby = [];
-            restaurantsData.tested.forEach(restaurant => {
-                const distance = calculateDistance(
-                    userLocation.lat, userLocation.lng,
-                    restaurant.coordinates.lat, restaurant.coordinates.lng
-                );
-                if (distance <= 5) { // 5km radius
-                    nearby.push({...restaurant, distance});
-                }
-            });
-
-            nearby.sort((a, b) => a.distance - b.distance);
-
-            if (nearby.length > 0) {
-                const nearest = nearby[0];
-                alert(`Restaurant le plus proche: ${nearest.name} (${nearest.distance.toFixed(1)}km)`);
-                
-                const totalDistance = nearby.reduce((sum, r) => sum + r.distance, 0);
-                document.getElementById('user-distance').textContent = totalDistance.toFixed(1) + 'km';
-            } else {
-                alert("Aucun restaurant testé dans un rayon de 5km");
-            }
-        }
-
-        function updateMapWithUserLocation() {
-            if (map && userLocation) {
-                if (userMarker) map.removeLayer(userMarker);
-                
-                userMarker = L.marker([userLocation.lat, userLocation.lng], {
-                    icon: L.divIcon({
-                        html: '<div style="background: #007bff; border: 3px solid white; border-radius: 50%; width: 15px; height: 15px;"></div>',
-                        iconSize: [15, 15],
-                        className: 'user-location'
-                    })
-                }).addTo(map);
-                
-                userMarker.bindPopup('<b>📍 Votre position</b>');
-                map.setView([userLocation.lat, userLocation.lng], 13);
-            }
-        }
-
         // Initialize map
         function initMap() {
             map = L.map('map').setView([48.8566, 2.3522], 12);
@@ -638,129 +1011,109 @@
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Add restaurants
+            // Add tested restaurants
             restaurantsData.tested.forEach(restaurant => {
-                const finalRating = calculateFinalRating(restaurant.ratings);
-                const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
+                if (restaurant.coordinates) {
+                    const finalRating = calculateFinalRating(restaurant.ratings);
+                    const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
 
-                marker.bindPopup(`
-                    <div style="min-width: 200px;">
-                        <h6><strong>${restaurant.name}</strong></h6>
-                        <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
-                        <p class="mb-2">${restaurant.location}</p>
-                        <div>${generateStars(finalRating)} ${finalRating}/5</div>
-                        <p class="small mt-2"><em>"${restaurant.comment}"</em></p>
-                    </div>
-                `);
+                    marker.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h6><strong>${restaurant.name}</strong></h6>
+                            <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
+                            <p class="mb-2">${restaurant.location}</p>
+                            <div>${generateStars(finalRating)} ${finalRating}/5</div>
+                            ${restaurant.comment ? `<p class="small mt-2"><em>"${restaurant.comment}"</em></p>` : ''}
+                        </div>
+                    `);
+                }
             });
 
             // Add wishlist
             restaurantsData.wishlist.forEach(restaurant => {
-                const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
-                marker.bindPopup(`
-                    <div style="min-width: 200px;">
-                        <h6><strong>${restaurant.name}</strong></h6>
-                        <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
-                        <p class="mb-2">${restaurant.location}</p>
-                        <div class="alert alert-info mb-0 py-2">
-                            ❤️ <strong>À tester</strong><br>
-                            <small>${restaurant.reason}</small>
+                if (restaurant.coordinates) {
+                    const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(map);
+                    marker.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h6><strong>${restaurant.name}</strong></h6>
+                            <p class="mb-1"><span class="badge ${getCuisineBadge(restaurant.type)}">${restaurant.type}</span></p>
+                            <p class="mb-2">${restaurant.location}</p>
+                            <div class="alert alert-info mb-0 py-2">
+                                ❤️ <strong>À tester</strong><br>
+                                ${restaurant.reason ? `<small>${restaurant.reason}</small>` : ''}
+                            </div>
                         </div>
-                    </div>
-                `);
-            });
-        }
-
-        // File import
-        function setupImport() {
-            const zone = document.getElementById('importZone');
-            const input = document.getElementById('fileInput');
-
-            zone.addEventListener('click', () => input.click());
-            
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                zone.classList.add('dragover');
-            });
-            
-            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-            
-            zone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                zone.classList.remove('dragover');
-                if (e.dataTransfer.files.length > 0) {
-                    processFile(e.dataTransfer.files[0]);
-                }
-            });
-
-            input.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    processFile(e.target.files[0]);
+                    `);
                 }
             });
         }
 
-        function processFile(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const content = e.target.result;
-                    let imported = [];
-
-                    if (file.name.endsWith('.json')) {
-                        imported = JSON.parse(content);
-                    } else {
-                        // Parse text files
-                        const lines = content.split('\n').filter(line => line.trim());
-                        imported = lines.map(line => {
-                            const parts = line.split(',');
-                            return {
-                                name: parts[0]?.trim(),
-                                location: parts[1]?.trim() || 'Paris',
-                                source: 'Google Maps Import'
-                            };
-                        }).filter(item => item.name);
-                    }
-
-                    if (imported.length > 0) {
-                        alert(`✅ ${imported.length} restaurants importés avec succès !`);
-                        console.log('Imported:', imported);
-                    }
-                } catch (error) {
-                    alert('❌ Erreur lors de l\'importation : ' + error.message);
-                }
-            };
-            reader.readAsText(file);
+        // Toast notifications
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0 position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', () => {
+                document.body.removeChild(toast);
+            });
         }
 
-        // Initialize sections
-        function initSections() {
-            document.getElementById('tested-grid').innerHTML = restaurantsData.tested.map(createTestedCard).join('');
-            document.getElementById('wishlist-grid').innerHTML = restaurantsData.wishlist.map(createWishlistCard).join('');
-            
-            // Update stats
-            document.getElementById('tested-count').textContent = restaurantsData.tested.length;
-            document.getElementById('wishlist-count').textContent = restaurantsData.wishlist.length;
-            
-            const avgRating = restaurantsData.tested.reduce((sum, r) => sum + calculateFinalRating(r.ratings), 0) / restaurantsData.tested.length;
-            document.getElementById('avg-rating').textContent = Math.round(avgRating * 10) / 10;
+        // Geolocation (simplified)
+        function getUserLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        showToast('Position détectée !', 'info');
+                        // Add logic to find nearby restaurants
+                    },
+                    error => showToast("Impossible d'obtenir votre position.", 'warning')
+                );
+            }
         }
 
         // Initialize everything
         document.addEventListener('DOMContentLoaded', function() {
-            initSections();
-            setupImport();
+            renderSections();
+            setupStarRatings();
             
-            // Geolocation buttons
+            // Floating button logic
+            document.getElementById('addFloatingBtn').addEventListener('click', function() {
+                const activeTab = document.querySelector('.nav-link.active').id;
+                const type = activeTab.includes('wishlist') ? 'wishlist' : 'tested';
+                openAddModal(type);
+            });
+            
+            // Geolocation button
             document.getElementById('findNearbyHero').addEventListener('click', getUserLocation);
-            document.getElementById('findNearbyFloat').addEventListener('click', getUserLocation);
 
-            // Initialize map when tab is shown
+            // Initialize map when tab is first clicked
             document.getElementById('map-tab').addEventListener('shown.bs.tab', function() {
                 if (!map) {
                     setTimeout(initMap, 100);
                 }
             });
+
+            // Welcome message for first time users
+            if (restaurantsData.tested.length === 0 && restaurantsData.wishlist.length === 0) {
+                setTimeout(() => {
+                    showToast('Bienvenue ! Commencez par ajouter votre premier restaurant 🍽️', 'info');
+                }, 1000);
+            }
         });
     </script>
 </body>
