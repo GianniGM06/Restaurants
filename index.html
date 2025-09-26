@@ -21,13 +21,18 @@
             <a class="navbar-brand fw-bold fs-3" href="#">
                 <i class="bi bi-cup-hot text-primary"></i>
                 Mon Carnet Gastro
-                <span class="badge bg-secondary fs-6" id="syncStatus">⚙️ Configuration...</span>
+                <span class="badge bg-secondary fs-6" id="syncStatus">⚙️ Chargement...</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <button class="btn btn-outline-secondary me-2" id="syncButton" onclick="manualSync()" title="Recharger depuis GitHub">
+                            <i class="bi bi-arrow-clockwise"></i> Synchroniser
+                        </button>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="githubDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-github"></i> GitHub
@@ -56,22 +61,32 @@
         <div class="main-container">
             <!-- Hero Section -->
             <div class="hero-section">
-                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro Collaboratif</h1>
-                <p class="fs-5 mb-4">Découvrez, notez et partagez vos meilleures adresses culinaires avec vos amis</p>
-                <div class="d-flex justify-content-center gap-3 mb-4">
-                    <button id="findNearbyHero" class="btn btn-light btn-lg">
-                        <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
-                    </button>
-                    <button class="btn btn-outline-light btn-lg" onclick="manualSync()">
-                        <i class="bi bi-cloud-arrow-down"></i> Synchroniser
-                    </button>
+                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro</h1>
+                <p class="fs-5 mb-4">Découvrez et notez vos meilleures adresses culinaires</p>
+                
+                <!-- Mode lecture seule - Message informatif -->
+                <div class="read-only-mode alert alert-info d-inline-block" style="display: none;">
+                    <i class="bi bi-eye-fill"></i>
+                    <strong>Mode lecture seule</strong><br>
+                    <small>Connectez-vous à GitHub pour ajouter/modifier des restaurants</small>
                 </div>
                 
-                <!-- Indicateur de collaboration -->
-                <div class="alert alert-info d-inline-block">
-                    <i class="bi bi-people-fill"></i>
-                    <strong>Carnet collaboratif :</strong> Vos amis peuvent aussi ajouter des restaurants !
-                    <br><small>Synchronisation automatique avec GitHub</small>
+                <!-- Mode édition - Boutons d'action -->
+                <div class="edit-mode-only">
+                    <div class="d-flex justify-content-center gap-3 mb-4">
+                        <button id="findNearbyHero" class="btn btn-light btn-lg">
+                            <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
+                        </button>
+                        <button class="btn btn-outline-light btn-lg" onclick="manualSync()">
+                            <i class="bi bi-cloud-arrow-down"></i> Synchroniser
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-success d-inline-block">
+                        <i class="bi bi-pencil-fill"></i>
+                        <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
+                        <br><small>Synchronisation automatique avec GitHub</small>
+                    </div>
                 </div>
             </div>
 
@@ -144,9 +159,16 @@
                 <div class="tab-pane fade show active" id="tested" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3>🌟 Mes Découvertes</h3>
-                        <button class="btn btn-primary" onclick="openAddModal('tested')">
-                            <i class="bi bi-plus-lg"></i> Ajouter un restaurant
-                        </button>
+                        <div class="edit-mode-only">
+                            <button class="btn btn-primary" onclick="openAddModal('tested')">
+                                <i class="bi bi-plus-lg"></i> Ajouter un restaurant
+                            </button>
+                        </div>
+                        <div class="read-only-mode" style="display: none;">
+                            <button class="btn btn-outline-primary" onclick="showGitHubConfig()">
+                                <i class="bi bi-github"></i> Se connecter pour éditer
+                            </button>
+                        </div>
                     </div>
                     <div class="row" id="tested-grid">
                         <!-- Generated by JavaScript -->
@@ -157,9 +179,16 @@
                 <div class="tab-pane fade" id="wishlist" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3>❤️ Ma Liste d'Envies</h3>
-                        <button class="btn btn-success" onclick="openAddModal('wishlist')">
-                            <i class="bi bi-plus-lg"></i> Ajouter une envie
-                        </button>
+                        <div class="edit-mode-only">
+                            <button class="btn btn-success" onclick="openAddModal('wishlist')">
+                                <i class="bi bi-plus-lg"></i> Ajouter une envie
+                            </button>
+                        </div>
+                        <div class="read-only-mode" style="display: none;">
+                            <button class="btn btn-outline-success" onclick="showGitHubConfig()">
+                                <i class="bi bi-github"></i> Se connecter pour éditer
+                            </button>
+                        </div>
                     </div>
                     <div class="row" id="wishlist-grid">
                         <!-- Generated by JavaScript -->
@@ -175,8 +204,8 @@
         </div>
     </div>
 
-    <!-- Floating Add Button -->
-    <button id="addFloatingBtn" class="btn btn-primary add-button" title="Ajouter">
+    <!-- Floating Add Button (Mode édition uniquement) -->
+    <button id="addFloatingBtn" class="btn btn-primary add-button edit-mode-only" title="Ajouter" style="display: none;">
         <i class="bi bi-plus-lg"></i>
     </button>
 
@@ -396,57 +425,5 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
-
-    <script>
-    // Fonction helper pour afficher la configuration GitHub
-    function showGitHubConfig() {
-        // Recréer et afficher le modal de configuration
-        const existingModal = document.getElementById('githubSetupModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        const modal = restaurantManager.github.createSetupModal();
-        document.body.appendChild(modal);
-        
-        // Préremplir avec les valeurs existantes
-        const owner = localStorage.getItem('githubOwner');
-        const token = localStorage.getItem('githubToken');
-        
-        if (owner) modal.querySelector('#setupOwner').value = owner;
-        if (token) modal.querySelector('#setupToken').value = token;
-        
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-        
-        const saveBtn = modal.querySelector('#saveGitHubSetup');
-        saveBtn.addEventListener('click', async () => {
-            const newToken = modal.querySelector('#setupToken').value;
-            const newOwner = modal.querySelector('#setupOwner').value;
-            
-            if (newToken && newOwner) {
-                restaurantManager.github.token = newToken;
-                restaurantManager.github.config.owner = newOwner;
-                
-                localStorage.setItem('githubToken', newToken);
-                localStorage.setItem('githubOwner', newOwner);
-                
-                bsModal.hide();
-                modal.remove();
-                
-                try {
-                    await restaurantManager.github.setup();
-                    await restaurantManager.loadData();
-                    restaurantManager.renderSections();
-                    restaurantManager.showToast('✅ Configuration GitHub mise à jour !', 'success');
-                    restaurantManager.updateSyncStatus('✅ Synchronisé');
-                } catch (error) {
-                    restaurantManager.showToast('❌ Erreur de configuration : ' + error.message, 'danger');
-                    restaurantManager.updateSyncStatus('❌ Erreur de config');
-                }
-            }
-        });
-    }
-    </script>
 </body>
 </html>
