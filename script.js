@@ -203,11 +203,31 @@ class SimpleRestaurantApp {
         const statusBadge = document.getElementById('status-badge');
         if (statusBadge) {
             if (this.isEditMode) {
-                statusBadge.className = 'badge bg-success';
+                statusBadge.className = 'badge bg-success fs-6';
                 statusBadge.textContent = '✏️ Mode édition';
             } else {
-                statusBadge.className = 'badge bg-info';
+                statusBadge.className = 'badge bg-info fs-6';
                 statusBadge.textContent = '👁️ Mode lecture';
+            }
+        }
+
+        // Mise à jour de l'indicateur dans la hero section
+        const modeIndicator = document.getElementById('mode-indicator');
+        if (modeIndicator) {
+            if (this.isEditMode) {
+                modeIndicator.className = 'alert alert-success d-inline-block';
+                modeIndicator.innerHTML = `
+                    <i class="bi bi-pencil-fill"></i>
+                    <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
+                    <br><small>Synchronisation automatique avec GitHub</small>
+                `;
+            } else {
+                modeIndicator.className = 'alert alert-info d-inline-block';
+                modeIndicator.innerHTML = `
+                    <i class="bi bi-eye-fill"></i>
+                    <strong>Mode lecture seule</strong><br>
+                    <small>Connectez-vous à GitHub pour ajouter/modifier des restaurants</small>
+                `;
             }
         }
 
@@ -228,10 +248,15 @@ class SimpleRestaurantApp {
             githubBtn.onclick = () => this.setupGitHub();
         }
 
-        // Bouton synchronisation manuelle
+        // Boutons synchronisation manuelle
         const syncBtn = document.getElementById('sync-btn');
         if (syncBtn) {
             syncBtn.onclick = () => this.loadData().then(() => this.render());
+        }
+
+        const syncBtnHero = document.getElementById('sync-btn-hero');
+        if (syncBtnHero) {
+            syncBtnHero.onclick = () => this.loadData().then(() => this.render());
         }
 
         // Boutons d'ajout
@@ -243,6 +268,16 @@ class SimpleRestaurantApp {
         const addWishlistBtn = document.getElementById('add-wishlist');
         if (addWishlistBtn) {
             addWishlistBtn.onclick = () => this.openAddModal('wishlist');
+        }
+
+        // Bouton flottant
+        const floatingBtn = document.getElementById('floating-add-btn');
+        if (floatingBtn) {
+            floatingBtn.onclick = () => {
+                const activeTab = document.querySelector('.nav-link.active');
+                const type = (activeTab && activeTab.id.includes('wishlist')) ? 'wishlist' : 'tested';
+                this.openAddModal(type);
+            };
         }
 
         // Onglet carte
@@ -300,37 +335,54 @@ class SimpleRestaurantApp {
         return `
             <div class="col-md-6 mb-4">
                 <div class="card restaurant-card h-100">
-                    <img src="${photo}" class="card-img-top" alt="${restaurant.name}" style="height: 200px; object-fit: cover;">
+                    <img src="${photo}" class="card-img-top" alt="${restaurant.name}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5 class="card-title">${restaurant.name}</h5>
                             <span class="badge bg-primary">${restaurant.type}</span>
                         </div>
-                        <p class="text-muted">
+                        <p class="card-text text-muted">
                             <i class="bi bi-geo-alt"></i> ${restaurant.location}
                             <span class="ms-2">${restaurant.priceRange || '€€'}</span>
                         </p>
                         
-                        <div class="bg-light p-2 rounded mb-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <strong>Note finale :</strong>
-                                <span class="fs-5 text-warning">
-                                    ${this.generateStars(rating)} ${rating.toFixed(1)}/5
-                                </span>
+                        <div class="rating-section">
+                            <div class="row mb-2">
+                                <div class="col-8"><small>🍽️ Plats (x2)</small></div>
+                                <div class="col-4 text-end"><span class="stars">${this.generateStars(restaurant.ratings.plats)}</span></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-8"><small>🍷 Vins (x1.5)</small></div>
+                                <div class="col-4 text-end"><span class="stars">${this.generateStars(restaurant.ratings.vins)}</span></div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-8"><small>😊 Accueil (x1.5)</small></div>
+                                <div class="col-4 text-end"><span class="stars">${this.generateStars(restaurant.ratings.accueil)}</span></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-8"><small>🏛️ Lieu (x1)</small></div>
+                                <div class="col-4 text-end"><span class="stars">${this.generateStars(restaurant.ratings.lieu)}</span></div>
                             </div>
                         </div>
 
-                        ${restaurant.comment ? `<p class="text-muted"><em>"${restaurant.comment}"</em></p>` : ''}
+                        <div class="final-rating">
+                            <strong>${rating.toFixed(1)}/5</strong> ${this.generateStars(rating)}
+                        </div>
 
-                        <div class="edit-only" style="display: ${this.isEditMode ? 'block' : 'none'};">
-                            <div class="btn-group w-100">
-                                <button class="btn btn-outline-primary btn-sm" onclick="app.editRestaurant(${restaurant.id}, 'tested')">
-                                    <i class="bi bi-pencil"></i> Modifier
-                                </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="app.deleteRestaurant(${restaurant.id}, 'tested')">
-                                    <i class="bi bi-trash"></i> Supprimer
-                                </button>
-                            </div>
+                        ${restaurant.comment ? `<blockquote class="blockquote-footer mt-3">"${restaurant.comment}"</blockquote>` : ''}
+
+                        <div class="action-buttons edit-only" style="display: ${this.isEditMode ? 'flex' : 'none'};">
+                            <button class="btn btn-outline-primary btn-action" onclick="app.editRestaurant(${restaurant.id}, 'tested')">
+                                <i class="bi bi-pencil"></i> Modifier
+                            </button>
+                            <button class="btn btn-outline-danger btn-action" onclick="app.deleteRestaurant(${restaurant.id}, 'tested')">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </button>
+                            ${restaurant.coordinates ? `
+                            <button class="btn btn-outline-info btn-action" onclick="app.showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
+                                <i class="bi bi-geo-alt"></i> Carte
+                            </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -343,38 +395,42 @@ class SimpleRestaurantApp {
         
         return `
             <div class="col-md-6 mb-4">
-                <div class="card restaurant-card wishlist-card h-100" style="border-left: 4px solid #198754;">
-                    <img src="${photo}" class="card-img-top" alt="${restaurant.name}" style="height: 200px; object-fit: cover;">
+                <div class="card restaurant-card wishlist-card h-100">
+                    <img src="${photo}" class="card-img-top" alt="${restaurant.name}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5 class="card-title">${restaurant.name}</h5>
                             <span class="badge bg-success">${restaurant.type}</span>
                         </div>
-                        <p class="text-muted">
+                        <p class="card-text text-muted">
                             <i class="bi bi-geo-alt"></i> ${restaurant.location}
                             <span class="ms-2">${restaurant.priceRange || '€€'}</span>
                         </p>
                         
                         ${restaurant.reason ? `
-                        <div class="alert alert-info py-2">
-                            <strong>💡 Pourquoi :</strong> ${restaurant.reason}
+                        <div class="alert alert-success">
+                            <strong>💡 Pourquoi :</strong><br>
+                            ${restaurant.reason}
                         </div>
                         ` : ''}
 
                         ${restaurant.comment ? `<p class="text-muted"><em>"${restaurant.comment}"</em></p>` : ''}
 
-                        <div class="edit-only" style="display: ${this.isEditMode ? 'block' : 'none'};">
-                            <div class="btn-group w-100">
-                                <button class="btn btn-success btn-sm" onclick="app.moveToTested(${restaurant.id})">
-                                    <i class="bi bi-check"></i> Testé !
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="app.editRestaurant(${restaurant.id}, 'wishlist')">
-                                    <i class="bi bi-pencil"></i> Modifier
-                                </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="app.deleteRestaurant(${restaurant.id}, 'wishlist')">
-                                    <i class="bi bi-trash"></i> Supprimer
-                                </button>
-                            </div>
+                        <div class="action-buttons edit-only" style="display: ${this.isEditMode ? 'flex' : 'none'};">
+                            <button class="btn btn-success btn-action" onclick="app.moveToTested(${restaurant.id})">
+                                <i class="bi bi-arrow-right"></i> Testé !
+                            </button>
+                            <button class="btn btn-outline-primary btn-action" onclick="app.editRestaurant(${restaurant.id}, 'wishlist')">
+                                <i class="bi bi-pencil"></i> Modifier
+                            </button>
+                            <button class="btn btn-outline-danger btn-action" onclick="app.deleteRestaurant(${restaurant.id}, 'wishlist')">
+                                <i class="bi bi-trash"></i> Supprimer
+                            </button>
+                            ${restaurant.coordinates ? `
+                            <button class="btn btn-outline-info btn-action" onclick="app.showOnMap(${restaurant.coordinates.lat}, ${restaurant.coordinates.lng})">
+                                <i class="bi bi-geo-alt"></i> Carte
+                            </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -567,6 +623,24 @@ class SimpleRestaurantApp {
     }
 
     /* ===== CARTE ===== */
+    showOnMap(lat, lng) {
+        // Activer l'onglet carte
+        const mapTab = document.getElementById('map-tab');
+        if (mapTab) {
+            mapTab.click();
+        }
+        
+        // Attendre que la carte soit initialisée et centrer sur le point
+        setTimeout(() => {
+            if (!this.map) {
+                this.initMap();
+            }
+            if (this.map) {
+                this.map.setView([lat, lng], 16);
+            }
+        }, 100);
+    }
+
     initMap() {
         if (this.map) return;
         
@@ -576,23 +650,37 @@ class SimpleRestaurantApp {
             attribution: '© OpenStreetMap contributors'
         }).addTo(this.map);
         
-        // Ajouter les marqueurs
-        [...this.data.tested, ...this.data.wishlist].forEach(restaurant => {
+        // Ajouter les marqueurs pour les restaurants testés (bleu)
+        this.data.tested.forEach(restaurant => {
             if (restaurant.coordinates) {
-                const isTested = this.data.tested.includes(restaurant);
-                const color = isTested ? 'blue' : 'green';
-                
+                const rating = this.calculateRating(restaurant.ratings);
                 const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(this.map);
                 
                 marker.bindPopup(`
                     <div style="min-width: 200px;">
                         <h6><strong>${restaurant.name}</strong></h6>
-                        <p class="mb-1">${restaurant.type} - ${restaurant.location}</p>
-                        ${isTested ? 
-                            `<div>⭐ ${this.calculateRating(restaurant.ratings).toFixed(1)}/5</div>` :
-                            `<div>❤️ À tester</div>`
-                        }
+                        <p class="mb-1"><span class="badge bg-primary">${restaurant.type}</span></p>
+                        <p class="mb-2">${restaurant.location}</p>
+                        <div>${this.generateStars(rating)} ${rating.toFixed(1)}/5</div>
                         ${restaurant.comment ? `<p class="small mt-2"><em>"${restaurant.comment}"</em></p>` : ''}
+                    </div>
+                `);
+            }
+        });
+        
+        // Ajouter les marqueurs pour la wishlist (vert)
+        this.data.wishlist.forEach(restaurant => {
+            if (restaurant.coordinates) {
+                const marker = L.marker([restaurant.coordinates.lat, restaurant.coordinates.lng]).addTo(this.map);
+                marker.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h6><strong>${restaurant.name}</strong></h6>
+                        <p class="mb-1"><span class="badge bg-success">${restaurant.type}</span></p>
+                        <p class="mb-2">${restaurant.location}</p>
+                        <div class="alert alert-info mb-0 py-2">
+                            ❤️ <strong>À tester</strong><br>
+                            ${restaurant.reason ? `<small>${restaurant.reason}</small>` : ''}
+                        </div>
                     </div>
                 `);
             }
@@ -608,11 +696,11 @@ class SimpleRestaurantApp {
         let stars = '';
         for (let i = 1; i <= 5; i++) {
             if (i <= rating) {
-                stars += '⭐';
+                stars += '<i class="bi bi-star-fill"></i>';
             } else if (i - 0.5 <= rating) {
-                stars += '✨';
+                stars += '<i class="bi bi-star-half"></i>';
             } else {
-                stars += '☆';
+                stars += '<i class="bi bi-star"></i>';
             }
         }
         return stars;
