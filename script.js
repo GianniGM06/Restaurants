@@ -68,11 +68,19 @@ class SimpleRestaurantApp {
         console.log('🔧 Configuration:', this.config);
         
         try {
-            // Charger depuis GitHub (public, pas besoin de token)
-            const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}`;
-            console.log('🔗 URL de chargement:', url);
+            // Charger depuis GitHub avec cache-busting
+            const timestamp = new Date().getTime();
+            const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}?t=${timestamp}`;
+            console.log('🔗 URL de chargement (avec cache-busting):', url);
             
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                // Headers pour forcer le bypass du cache
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             console.log('📨 Réponse fetch status:', response.status);
             
             if (!response.ok) {
@@ -301,6 +309,7 @@ class SimpleRestaurantApp {
         try {
             const githubDropdown = document.querySelector('#githubDropdown + .dropdown-menu');
             if (githubDropdown && !document.getElementById('github-test')) {
+                // Bouton test de connexion
                 const testBtn = document.createElement('li');
                 testBtn.innerHTML = `
                     <a class="dropdown-item" href="#" id="github-test">
@@ -309,13 +318,47 @@ class SimpleRestaurantApp {
                 `;
                 githubDropdown.appendChild(testBtn);
                 
+                // Bouton rechargement forcé
+                const reloadBtn = document.createElement('li');
+                reloadBtn.innerHTML = `
+                    <a class="dropdown-item" href="#" id="github-reload">
+                        <i class="bi bi-arrow-clockwise"></i> Recharger depuis GitHub
+                    </a>
+                `;
+                githubDropdown.appendChild(reloadBtn);
+                
+                // Séparateur
+                const separator = document.createElement('li');
+                separator.innerHTML = '<hr class="dropdown-divider">';
+                githubDropdown.appendChild(separator);
+                
+                // Bouton hard refresh
+                const hardRefreshBtn = document.createElement('li');
+                hardRefreshBtn.innerHTML = `
+                    <a class="dropdown-item" href="#" id="github-hard-refresh">
+                        <i class="bi bi-arrow-repeat"></i> Actualiser la page
+                    </a>
+                `;
+                githubDropdown.appendChild(hardRefreshBtn);
+                
+                // Event listeners
                 document.getElementById('github-test').onclick = (e) => {
                     e.preventDefault();
                     this.testGitHub();
                 };
+                
+                document.getElementById('github-reload').onclick = (e) => {
+                    e.preventDefault();
+                    this.reloadFromGitHub();
+                };
+                
+                document.getElementById('github-hard-refresh').onclick = (e) => {
+                    e.preventDefault();
+                    this.hardRefresh();
+                };
             }
         } catch (error) {
-            console.warn('⚠️ Erreur ajout bouton test:', error);
+            console.warn('⚠️ Erreur ajout boutons GitHub:', error);
         }
     }
 
@@ -449,6 +492,11 @@ class SimpleRestaurantApp {
             
             if (success) {
                 this.showToast('✅ Données sauvegardées sur GitHub !', 'success');
+                
+                // Proposer de recharger pour synchroniser
+                if (confirm('✅ Sauvegarde réussie !\n\n🔄 Voulez-vous recharger la page pour synchroniser avec GitHub ?\n(Cela garantit que vous voyez la dernière version)')) {
+                    this.reloadFromGitHub();
+                }
             }
             
         } catch (error) {
@@ -467,6 +515,14 @@ class SimpleRestaurantApp {
         } catch (error) {
             console.error('Erreur rechargement:', error);
             this.showToast('❌ Erreur de rechargement', 'danger');
+        }
+    }
+
+    // Fonction pour hard refresh de la page (alternative)
+    hardRefresh() {
+        if (confirm('🔄 Actualiser la page ?\n\nCela va recharger complètement l\'application avec les dernières données GitHub.')) {
+            // Force un hard refresh (bypass cache)
+            window.location.reload(true);
         }
     }
 
