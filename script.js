@@ -6,7 +6,169 @@ class GitHubBackend {
             repo: localStorage.getItem('githubRepo') || 'Restaurants_data',
             filePath: 'restaurants.json',
             branch: 'main'
+        }
+
+    // Parser les données JSON vers le format interne
+    parseJsonData(jsonData) {
+        console.log('🔄 Parsing des données JSON...');
+        
+        const data = {
+            tested: jsonData.tested || [],
+            wishlist: jsonData.wishlist || [],
+            cuisineTypes: this.parseCuisineTypes(jsonData.cuisineTypes)
         };
+        
+        console.log('✅ Données parsées:', {
+            tested: data.tested.length,
+            wishlist: data.wishlist.length,
+            cuisineTypes: data.cuisineTypes.length
+        });
+        
+        return data;
+    }
+
+    // Convertir les cuisineTypes du JSON vers le format interne
+    parseCuisineTypes(cuisineTypesData) {
+        if (!cuisineTypesData) {
+            return this.getDefaultCuisineTypes();
+        }
+        
+        // Si c'est déjà un array (format interne), le retourner tel quel
+        if (Array.isArray(cuisineTypesData)) {
+            return cuisineTypesData;
+        }
+        
+        // Si c'est un objet (format JSON original), le convertir
+        if (typeof cuisineTypesData === 'object') {
+            const cuisineArray = [];
+            
+            for (const [key, value] of Object.entries(cuisineTypesData)) {
+                cuisineArray.push({
+                    value: key,
+                    label: `${value.emoji || '🍽️'} ${key.charAt(0).toUpperCase() + key.slice(1)}`,
+                    emoji: value.emoji || '🍽️'
+                });
+            }
+            
+            return cuisineArray;
+        }
+        
+        return this.getDefaultCuisineTypes();
+    }
+
+    // Données d'exemple intégrées (basées sur votre JSON original)
+    getExampleData() {
+        return {
+            "config": {
+                "title": "Mon Carnet Gastro",
+                "author": "Votre Nom",
+                "location": "Paris, France"
+            },
+            "cuisineTypes": {
+                "français": { "color": "primary", "emoji": "🥖" },
+                "italien": { "color": "success", "emoji": "🍕" },
+                "asiatique": { "color": "danger", "emoji": "🍜" },
+                "japonais": { "color": "warning", "emoji": "🍣" }
+            },
+            "tested": [
+                {
+                    "id": 1,
+                    "name": "Le Comptoir du Relais",
+                    "type": "français",
+                    "location": "6ème arrondissement",
+                    "address": "9 Carrefour de l'Odéon, 75006 Paris",
+                    "coordinates": { "lat": 48.8534, "lng": 2.3387 },
+                    "ratings": {
+                        "plats": 4.5,
+                        "vins": 4.0,
+                        "accueil": 4.5,
+                        "lieu": 4.0
+                    },
+                    "comment": "Bistrot authentique avec une cuisine excellente. L'ambiance est parfaite !",
+                    "dateVisited": "2024-12-15",
+                    "priceRange": "€€",
+                    "photos": [
+                        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop"
+                    ]
+                },
+                {
+                    "id": 2,
+                    "name": "Pink Mamma",
+                    "type": "italien",
+                    "location": "Pigalle",
+                    "address": "20 bis rue de Douai, 75009 Paris",
+                    "coordinates": { "lat": 48.8814, "lng": 2.3346 },
+                    "ratings": {
+                        "plats": 4.0,
+                        "vins": 3.5,
+                        "accueil": 4.0,
+                        "lieu": 5.0
+                    },
+                    "comment": "Décor incroyable ! Les pizzas sont bonnes mais l'attente peut être longue.",
+                    "dateVisited": "2024-11-28",
+                    "priceRange": "€€€",
+                    "photos": [
+                        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop"
+                    ]
+                },
+                {
+                    "id": 3,
+                    "name": "Breizh Café",
+                    "type": "français",
+                    "location": "3ème arrondissement",
+                    "address": "109 rue Vieille du Temple, 75003 Paris",
+                    "coordinates": { "lat": 48.8608, "lng": 2.3628 },
+                    "ratings": {
+                        "plats": 5.0,
+                        "vins": 3.0,
+                        "accueil": 4.0,
+                        "lieu": 3.5
+                    },
+                    "comment": "Les meilleures crêpes de Paris ! Version moderne et raffinée.",
+                    "dateVisited": "2024-10-12",
+                    "priceRange": "€€",
+                    "photos": [
+                        "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=400&h=300&fit=crop"
+                    ]
+                }
+            ],
+            "wishlist": [
+                {
+                    "id": 4,
+                    "name": "L'Ami Jean",
+                    "type": "français",
+                    "location": "7ème arrondissement",
+                    "address": "27 rue Malar, 75007 Paris",
+                    "coordinates": { "lat": 48.8584, "lng": 2.3019 },
+                    "reason": "Recommandé par un ami pour la cuisine basque",
+                    "addedDate": "2024-12-01",
+                    "priceRange": "€€€"
+                },
+                {
+                    "id": 5,
+                    "name": "Yam'Tcha",
+                    "type": "asiatique",
+                    "location": "1er arrondissement", 
+                    "address": "4 rue Sauval, 75001 Paris",
+                    "coordinates": { "lat": 48.8644, "lng": 2.3364 },
+                    "reason": "Cuisine franco-chinoise étoilée, accord thés",
+                    "addedDate": "2024-11-15",
+                    "priceRange": "€€€€"
+                },
+                {
+                    "id": 6,
+                    "name": "Du Pain et des Idées",
+                    "type": "français",
+                    "location": "10ème arrondissement",
+                    "address": "34 rue Yves Toudic, 75010 Paris",
+                    "coordinates": { "lat": 48.8701, "lng": 2.3621 },
+                    "reason": "Meilleure boulangerie de Paris selon Time Out",
+                    "addedDate": "2024-12-20",
+                    "priceRange": "€"
+                }
+            ]
+        };
+    };
         
         this.token = localStorage.getItem('githubToken');
         this.cache = null;
@@ -95,26 +257,59 @@ class GitHubBackend {
 
     async loadFromGitHub() {
         try {
+            console.log('🔄 Chargement depuis GitHub API...');
+            console.log('🌐 Use proxy:', this.useProxy);
+            
             const response = await this.makeRequest(`contents/${this.config.filePath}`);
+            console.log('📡 Response type:', typeof response);
+            console.log('📡 Response keys:', Object.keys(response || {}));
             
             let content;
             let sha = null;
             
             if (this.useProxy) {
+                // Avec le proxy allorigins, on peut recevoir :
+                // 1. Directement le contenu JSON (string)
+                // 2. Un objet avec le contenu déjà décodé
+                // 3. Un objet GitHub API standard
+                
                 if (typeof response === 'string') {
+                    // Cas 1: Contenu direct
                     content = response;
-                } else if (response.content) {
-                    content = atob(response.content.replace(/\s/g, ''));
-                    sha = response.sha;
+                    console.log('✅ Contenu direct reçu');
+                } else if (response && typeof response === 'object') {
+                    if (response.content && typeof response.content === 'string') {
+                        // Cas 3: Format GitHub API via proxy
+                        content = atob(response.content.replace(/\s/g, ''));
+                        sha = response.sha;
+                        console.log('✅ Format GitHub API via proxy');
+                    } else if (response.tested || response.wishlist) {
+                        // Cas 2: L'objet JSON déjà parsé
+                        content = JSON.stringify(response);
+                        console.log('✅ Objet JSON déjà parsé');
+                    } else {
+                        console.error('❌ Format de réponse proxy inattendu:', response);
+                        throw new Error('Format de réponse proxy inattendu');
+                    }
                 } else {
-                    throw new Error('Format de réponse inattendu');
+                    console.error('❌ Réponse proxy invalide:', response);
+                    throw new Error('Réponse proxy invalide');
                 }
             } else {
-                content = atob(response.content.replace(/\s/g, ''));
-                sha = response.sha;
+                // Sans proxy : format GitHub API standard
+                if (response.content) {
+                    content = atob(response.content.replace(/\s/g, ''));
+                    sha = response.sha;
+                    console.log('✅ Format GitHub API standard');
+                } else {
+                    console.error('❌ Réponse GitHub API invalide:', response);
+                    throw new Error('Réponse GitHub API invalide');
+                }
             }
             
+            console.log('📄 Content length:', content.length);
             const data = JSON.parse(content);
+            console.log('✅ JSON parsé avec succès');
             
             // Détecter les changements
             const hasChanges = this.lastSha && this.lastSha !== sha;
@@ -130,7 +325,7 @@ class GitHubBackend {
             return { data, hasChanges };
             
         } catch (error) {
-            console.error('Erreur loadFromGitHub:', error);
+            console.error('❌ Erreur loadFromGitHub:', error);
             throw error;
         }
     }
@@ -220,35 +415,37 @@ class RestaurantManager {
     }
 
     async initialize() {
+        console.log('🚀 Initialisation du RestaurantManager...');
+        console.log('📍 Config GitHub:', this.github.config);
+        console.log('🔑 Token disponible:', !!this.github.token);
+        
         try {
             // Essayer de se connecter à GitHub
             const githubSetup = await this.github.setup();
             
             if (githubSetup) {
                 // Mode édition activé
+                console.log('✅ GitHub configuré - Mode édition');
                 this.isEditMode = true;
                 await this.loadData();
                 this.startSyncCheck(); // Vérifier les changements périodiquement
                 this.updateSyncStatus('✅ Mode édition');
                 this.showToast('✅ Connecté GitHub - Mode édition activé !', 'success');
             } else {
-                // Mode lecture seule
-                this.isEditMode = false;
-                await this.loadDataReadOnly();
-                this.updateSyncStatus('👁️ Mode lecture');
-                this.showToast('👁️ Mode lecture seule - Configurez GitHub pour éditer', 'info');
+                throw new Error('GitHub non configuré ou inaccessible');
             }
             
-            this.updateUIMode();
-            
         } catch (error) {
-            // Mode lecture seule en cas d'erreur
+            // Mode lecture seule
+            console.log('📖 Basculement en mode lecture seule:', error.message);
             this.isEditMode = false;
             await this.loadDataReadOnly();
             this.updateSyncStatus('👁️ Mode lecture');
-            this.showToast('👁️ Mode lecture seule - Données chargées sans GitHub', 'info');
-            this.updateUIMode();
+            this.showToast('👁️ Mode lecture seule - Configurez GitHub pour éditer', 'info');
         }
+        
+        this.updateUIMode();
+        console.log('🎯 Initialisation terminée');
         
         return true;
     }
@@ -259,18 +456,15 @@ class RestaurantManager {
             console.log('Chargement des données depuis GitHub...');
             const result = await this.github.loadFromGitHub();
             
-            this.data = {
-                tested: result.data.tested || [],
-                wishlist: result.data.wishlist || [],
-                cuisineTypes: result.data.cuisineTypes || this.getDefaultCuisineTypes()
-            };
+            // Parser les données du JSON
+            this.data = this.parseJsonData(result.data);
             
             // Afficher notification si changements détectés
             if (result.hasChanges) {
                 this.showSyncNotification();
             }
             
-            console.log('Données chargées:', {
+            console.log('📊 Données chargées depuis GitHub:', {
                 tested: this.data.tested.length,
                 wishlist: this.data.wishlist.length
             });
@@ -283,27 +477,66 @@ class RestaurantManager {
 
     // Chargement en lecture seule (sans GitHub ou en cas d'erreur)
     async loadDataReadOnly() {
+        console.log('📖 Tentative de chargement en mode lecture seule...');
+        
         try {
-            // Essayer de charger depuis l'URL publique du JSON
-            const response = await fetch(`https://raw.githubusercontent.com/${this.github.config.owner}/${this.github.config.repo}/main/restaurants.json`);
+            // Essayer plusieurs sources pour le JSON
+            let jsonData = null;
             
-            if (response.ok) {
-                const jsonData = await response.json();
-                this.data = {
-                    tested: jsonData.tested || [],
-                    wishlist: jsonData.wishlist || [],
-                    cuisineTypes: jsonData.cuisineTypes || this.getDefaultCuisineTypes()
-                };
-                console.log('Données chargées en mode lecture:', {
-                    tested: this.data.tested.length,
-                    wishlist: this.data.wishlist.length
-                });
-            } else {
-                throw new Error('Impossible de charger les données');
+            // 1. Essayer avec la config GitHub si disponible
+            if (this.github.config.owner && this.github.config.repo) {
+                console.log('🔗 Tentative GitHub public:', `${this.github.config.owner}/${this.github.config.repo}`);
+                try {
+                    const url = `https://raw.githubusercontent.com/${this.github.config.owner}/${this.github.config.repo}/main/restaurants.json`;
+                    console.log('📡 URL:', url);
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        jsonData = await response.json();
+                        console.log('✅ Données chargées depuis GitHub public');
+                    } else {
+                        console.log('❌ GitHub public failed:', response.status, response.statusText);
+                    }
+                } catch (e) {
+                    console.log('❌ GitHub public error:', e.message);
+                }
             }
+            
+            // 2. Essayer de charger le fichier local (si sur le même domaine)
+            if (!jsonData) {
+                console.log('📁 Tentative fichier local...');
+                try {
+                    const response = await fetch('./restaurants.json');
+                    if (response.ok) {
+                        jsonData = await response.json();
+                        console.log('✅ Données chargées depuis fichier local');
+                    } else {
+                        console.log('❌ Local file failed:', response.status);
+                    }
+                } catch (e) {
+                    console.log('❌ Local file error:', e.message);
+                }
+            }
+            
+            // 3. Utiliser des données d'exemple si rien ne fonctionne
+            if (!jsonData) {
+                console.log('📋 Utilisation des données d\'exemple intégrées');
+                jsonData = this.getExampleData();
+            }
+            
+            // Convertir les données au bon format
+            this.data = this.parseJsonData(jsonData);
+            
+            console.log('📊 Données finales chargées:', {
+                tested: this.data.tested.length,
+                wishlist: this.data.wishlist.length,
+                cuisineTypes: this.data.cuisineTypes.length
+            });
+            
         } catch (error) {
-            console.warn('Chargement en lecture seule échoué, données par défaut:', error);
-            // Garder les données par défaut (vides)
+            console.error('❌ Erreur totale chargement lecture seule:', error);
+            // Utiliser les données d'exemple en cas d'erreur totale
+            console.log('🆘 Fallback vers données d\'exemple');
+            this.data = this.parseJsonData(this.getExampleData());
         }
     }
 
@@ -1267,22 +1500,42 @@ class RestaurantManager {
         
         try {
             // Tenter la connexion et activer le mode édition
-            this.updateSyncStatus('🔄 Connexion...');
+            this.updateSyncStatus('🔄 Test connexion...');
             const setupSuccess = await this.github.setup();
             
             if (setupSuccess) {
-                this.isEditMode = true;
-                await this.loadData();
-                this.renderSections();
-                this.startSyncCheck();
-                this.updateModeIndicator();
-                this.showToast('✅ Mode édition activé !', 'success');
+                this.updateSyncStatus('🔄 Chargement données...');
+                
+                try {
+                    // Essayer de charger les données
+                    this.isEditMode = true;
+                    await this.loadData();
+                    this.renderSections();
+                    this.startSyncCheck();
+                    this.updateModeIndicator();
+                    this.showToast('✅ Mode édition activé !', 'success');
+                } catch (loadError) {
+                    console.warn('❌ Erreur chargement GitHub, utilisation données actuelles:', loadError);
+                    // Garder les données actuelles mais activer le mode édition
+                    this.isEditMode = true;
+                    this.renderSections();
+                    this.updateModeIndicator();
+                    this.showToast('⚠️ Mode édition activé avec données locales - Erreur de chargement GitHub', 'warning');
+                }
             } else {
-                throw new Error('Impossible de se connecter à GitHub');
+                throw new Error('Test de connexion échoué');
             }
         } catch (error) {
+            console.error('❌ Erreur configuration GitHub:', error);
             this.updateSyncStatus('❌ Erreur GitHub');
-            this.showToast('❌ Erreur : ' + error.message, 'danger');
+            this.showToast('❌ Erreur de connexion GitHub : ' + error.message, 'danger');
+            
+            // Proposer de continuer en mode lecture seule
+            if (confirm('Erreur de connexion GitHub. Voulez-vous continuer en mode lecture seule ?')) {
+                this.isEditMode = false;
+                this.updateUIMode();
+                this.updateSyncStatus('👁️ Mode lecture');
+            }
         }
     }
 
