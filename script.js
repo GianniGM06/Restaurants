@@ -64,21 +64,31 @@ class SimpleRestaurantApp {
 
     /* ===== CHARGEMENT DES DONNÉES ===== */
     async loadData() {
-        console.log('📖 Chargement des données...');
+        console.log('📖 Début chargement des données...');
+        console.log('🔧 Configuration:', this.config);
         
         try {
             // Charger depuis GitHub (public, pas besoin de token)
             const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}`;
-            console.log('🔗 URL:', url);
+            console.log('🔗 URL de chargement:', url);
             
             const response = await fetch(url);
+            console.log('📨 Réponse fetch status:', response.status);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            const jsonData = await response.json();
-            console.log('✅ JSON chargé depuis GitHub');
+            const text = await response.text();
+            console.log('📄 Texte reçu (début):', text.substring(0, 200) + '...');
+            
+            const jsonData = JSON.parse(text);
+            console.log('✅ JSON parsé avec succès');
+            console.log('📊 Données trouvées:', {
+                tested: jsonData.tested?.length || 0,
+                wishlist: jsonData.wishlist?.length || 0,
+                cuisineTypes: Object.keys(jsonData.cuisineTypes || {}).length
+            });
             
             // Si on est en mode édition, récupérer aussi le SHA pour les mises à jour
             if (this.isEditMode) {
@@ -92,7 +102,7 @@ class SimpleRestaurantApp {
                 cuisineTypes: this.parseCuisineTypes(jsonData.cuisineTypes || {})
             };
             
-            console.log('📊 Données parsées:', {
+            console.log('📊 Données finales parsées:', {
                 tested: this.data.tested.length,
                 wishlist: this.data.wishlist.length,
                 cuisines: this.data.cuisineTypes.length
@@ -109,6 +119,12 @@ class SimpleRestaurantApp {
                 cuisineTypes: this.getDefaultCuisineTypes()
             };
             
+            console.log('📊 Données par défaut chargées:', {
+                tested: this.data.tested.length,
+                wishlist: this.data.wishlist.length,
+                cuisines: this.data.cuisineTypes.length
+            });
+            
             // Re-lancer l'erreur pour que l'appelant sache qu'il y a eu un problème
             throw error;
         }
@@ -116,10 +132,15 @@ class SimpleRestaurantApp {
 
     /* ===== RÉCUPÉRATION DU SHA (pour les mises à jour) ===== */
     async getFileSha() {
-        if (!this.githubToken) return;
+        if (!this.githubToken) {
+            console.log('⚠️ Pas de token GitHub pour récupérer le SHA');
+            return;
+        }
         
         try {
             const url = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${this.config.fileName}`;
+            console.log('🔍 Récupération SHA depuis:', url);
+            
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `token ${this.githubToken}`,
@@ -127,13 +148,23 @@ class SimpleRestaurantApp {
                 }
             });
             
+            console.log('📨 Réponse SHA status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
                 this.fileSha = data.sha;
-                console.log('🔑 SHA récupéré pour les mises à jour');
+                console.log('🔑 SHA récupéré avec succès:', this.fileSha);
+            } else {
+                const errorData = await response.json();
+                console.warn('⚠️ Erreur récupération SHA:', response.status, errorData);
+                if (response.status === 404) {
+                    console.log('📄 Fichier n\'existe pas encore - sera créé');
+                    this.fileSha = null;
+                }
             }
         } catch (error) {
-            console.warn('⚠️ Impossible de récupérer le SHA:', error);
+            console.warn('⚠️ Erreur réseau récupération SHA:', error);
+            this.fileSha = null;
         }
     }
 
@@ -227,6 +258,9 @@ class SimpleRestaurantApp {
                 }
             }
 
+            // Bouton test GitHub (ajouté dynamiquement au menu)
+            this.addTestGitHubButton();
+
             // Boutons d'ajout
             const addTestedBtn = document.getElementById('add-tested');
             if (addTestedBtn) {
@@ -263,6 +297,28 @@ class SimpleRestaurantApp {
         }
     }
 
+    addTestGitHubButton() {
+        try {
+            const githubDropdown = document.querySelector('#githubDropdown + .dropdown-menu');
+            if (githubDropdown && !document.getElementById('github-test')) {
+                const testBtn = document.createElement('li');
+                testBtn.innerHTML = `
+                    <a class="dropdown-item" href="#" id="github-test">
+                        <i class="bi bi-wifi"></i> Tester la connexion
+                    </a>
+                `;
+                githubDropdown.appendChild(testBtn);
+                
+                document.getElementById('github-test').onclick = (e) => {
+                    e.preventDefault();
+                    this.testGitHub();
+                };
+            }
+        } catch (error) {
+            console.warn('⚠️ Erreur ajout bouton test:', error);
+        }
+    }
+
     /* ===== CONFIGURATION GITHUB ===== */
     setupGitHub() {
         const token = prompt('Entrez votre token GitHub (commence par ghp_) :');
@@ -281,12 +337,18 @@ class SimpleRestaurantApp {
     /* ===== SAUVEGARDE SUR GITHUB ===== */
     async saveToGitHub() {
         if (!this.githubToken) {
+            console.warn('❌ Pas de token GitHub');
             this.showToast('❌ Token GitHub requis pour sauvegarder', 'warning');
             return false;
         }
 
         try {
-            console.log('💾 Sauvegarde sur GitHub...');
+            console.log('💾 Début sauvegarde sur GitHub...');
+            console.log('🔧 Config:', this.config);
+            console.log('📊 Données à sauvegarder:', {
+                tested: this.data.tested.length,
+                wishlist: this.data.wishlist.length
+            });
             
             // Construire le JSON complet
             const fullData = {
@@ -304,11 +366,17 @@ class SimpleRestaurantApp {
                 }
             };
 
+            console.log('📄 JSON généré:', JSON.stringify(fullData, null, 2).substring(0, 500) + '...');
+
             // Encoder en base64
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(fullData, null, 2))));
+            const jsonString = JSON.stringify(fullData, null, 2);
+            const content = btoa(unescape(encodeURIComponent(jsonString)));
+            console.log('🔐 Contenu encodé (longueur):', content.length);
             
             // Préparer la requête
             const url = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${this.config.fileName}`;
+            console.log('🔗 URL API:', url);
+            
             const payload = {
                 message: `Mise à jour restaurants - ${new Date().toLocaleString()}`,
                 content: content,
@@ -318,7 +386,12 @@ class SimpleRestaurantApp {
             // Inclure le SHA si on l'a (pour mise à jour)
             if (this.fileSha) {
                 payload.sha = this.fileSha;
+                console.log('🔑 SHA utilisé:', this.fileSha);
+            } else {
+                console.log('⚠️ Pas de SHA - création d\'un nouveau fichier');
             }
+            
+            console.log('📤 Envoi vers GitHub...');
             
             // Envoyer à GitHub
             const response = await fetch(url, {
@@ -331,20 +404,25 @@ class SimpleRestaurantApp {
                 body: JSON.stringify(payload)
             });
 
+            console.log('📨 Réponse GitHub status:', response.status);
+
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`GitHub API Error: ${errorData.message}`);
+                console.error('❌ Erreur GitHub API:', errorData);
+                throw new Error(`GitHub API Error (${response.status}): ${errorData.message}`);
             }
 
             const result = await response.json();
-            this.fileSha = result.content.sha; // Mettre à jour le SHA
+            console.log('✅ Réponse GitHub réussie:', result);
             
-            console.log('✅ Sauvegarde GitHub réussie');
-            this.showToast('✅ Sauvegardé sur GitHub !', 'success');
+            this.fileSha = result.content.sha; // Mettre à jour le SHA
+            console.log('🔑 Nouveau SHA sauvegardé:', this.fileSha);
+            
+            console.log('✅ Sauvegarde GitHub complètement réussie');
             return true;
             
         } catch (error) {
-            console.error('❌ Erreur sauvegarde GitHub:', error);
+            console.error('❌ Erreur complète sauvegarde GitHub:', error);
             this.showToast('❌ Erreur sauvegarde: ' + error.message, 'danger');
             return false;
         }
@@ -392,6 +470,62 @@ class SimpleRestaurantApp {
         }
     }
 
+    // Test de connectivité GitHub
+    async testGitHub() {
+        if (!this.githubToken) {
+            this.showToast('❌ Token GitHub requis pour tester', 'warning');
+            return;
+        }
+
+        try {
+            this.showToast('🔍 Test de connectivité GitHub...', 'info');
+            
+            // Test 1: Vérifier le repository
+            const repoUrl = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}`;
+            console.log('🔍 Test repository:', repoUrl);
+            
+            const repoResponse = await fetch(repoUrl, {
+                headers: {
+                    'Authorization': `token ${this.githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (!repoResponse.ok) {
+                throw new Error(`Repository non accessible: ${repoResponse.status}`);
+            }
+            
+            const repoData = await repoResponse.json();
+            console.log('✅ Repository trouvé:', repoData.name, repoData.permissions);
+            
+            // Test 2: Vérifier le fichier
+            const fileUrl = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${this.config.fileName}`;
+            console.log('🔍 Test fichier:', fileUrl);
+            
+            const fileResponse = await fetch(fileUrl, {
+                headers: {
+                    'Authorization': `token ${this.githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (fileResponse.ok) {
+                const fileData = await fileResponse.json();
+                console.log('✅ Fichier trouvé, SHA:', fileData.sha);
+                this.showToast('✅ GitHub connecté et fichier trouvé !', 'success');
+            } else if (fileResponse.status === 404) {
+                console.log('📄 Fichier n\'existe pas encore');
+                this.showToast('⚠️ Fichier n\'existe pas - sera créé à la première sauvegarde', 'warning');
+            } else {
+                throw new Error(`Fichier non accessible: ${fileResponse.status}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Erreur test GitHub:', error);
+            this.showToast('❌ Test GitHub échoué: ' + error.message, 'danger');
+        }
+    }
+
     // Sauvegarde automatique après chaque modification
     async autoSave() {
         if (!this.isEditMode) return;
@@ -402,19 +536,24 @@ class SimpleRestaurantApp {
         this.updateSyncStatus('💾 Sauvegarde...');
         
         try {
-            await this.saveToGitHub();
-            console.log('✅ Sauvegarde automatique réussie');
-            this.updateSyncStatus('✅ Sauvegardé');
+            const success = await this.saveToGitHub();
             
-            // Remettre le statut normal après 2 secondes
-            setTimeout(() => {
-                this.updateSyncStatus();
-            }, 2000);
+            if (success) {
+                console.log('✅ Sauvegarde automatique réussie');
+                this.updateSyncStatus('✅ Sauvegardé');
+                
+                // Remettre le statut normal après 2 secondes
+                setTimeout(() => {
+                    this.updateSyncStatus();
+                }, 2000);
+            } else {
+                throw new Error('Sauvegarde échouée');
+            }
             
         } catch (error) {
             console.error('❌ Erreur sauvegarde automatique:', error);
             this.updateSyncStatus('❌ Erreur');
-            this.showToast('⚠️ Erreur sauvegarde automatique - utilisez le bouton Sauvegarder', 'warning');
+            this.showToast('⚠️ Erreur sauvegarde automatique - vérifiez la console', 'warning');
             
             // Remettre le statut normal après 3 secondes
             setTimeout(() => {
