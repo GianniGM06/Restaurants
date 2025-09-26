@@ -68,19 +68,13 @@ class SimpleRestaurantApp {
         console.log('🔧 Configuration:', this.config);
         
         try {
-            // Charger depuis GitHub avec cache-busting
+            // Charger depuis GitHub avec cache-busting (timestamp dans l'URL seulement)
             const timestamp = new Date().getTime();
             const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}?t=${timestamp}`;
             console.log('🔗 URL de chargement (avec cache-busting):', url);
             
-            const response = await fetch(url, {
-                // Headers pour forcer le bypass du cache
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
-            });
+            // Requête simple sans headers personnalisés pour éviter CORS
+            const response = await fetch(url);
             console.log('📨 Réponse fetch status:', response.status);
             
             if (!response.ok) {
