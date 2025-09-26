@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Carnet Gastro Collaboratif</title>
+    <title>Mon Carnet Gastro</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,245 +11,169 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        .restaurant-card {
+            transition: transform 0.2s;
+        }
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+        }
+        .wishlist-card {
+            background: linear-gradient(45deg, #f8fff9, #d1e7dd);
+        }
+        #map {
+            height: 500px;
+            border-radius: 10px;
+        }
+    </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand fw-bold fs-3" href="#">
-                <i class="bi bi-cup-hot text-primary"></i>
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-cup-hot"></i>
                 Mon Carnet Gastro
-                <span class="badge bg-secondary fs-6" id="syncStatus">⚙️ Chargement...</span>
+                <span id="status-badge" class="badge bg-secondary ms-2">⚙️ Chargement...</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <button class="btn btn-outline-secondary me-2" id="syncButton" onclick="manualSync()" title="Recharger depuis GitHub">
-                            <i class="bi bi-arrow-clockwise"></i> Synchroniser
-                        </button>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="githubDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-github"></i> GitHub
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="manualSync()">
-                                <i class="bi bi-arrow-clockwise"></i> Synchroniser maintenant
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="showGitHubConfig()">
-                                <i class="bi bi-gear"></i> Configuration GitHub
-                            </a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="exportData()">
-                            <i class="bi bi-download"></i> Export local
-                        </a>
-                    </li>
-                </ul>
+            
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-outline-light me-2" id="sync-btn" title="Recharger les données">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button class="btn btn-outline-light" id="github-config" title="Configuration GitHub">
+                    <i class="bi bi-github"></i>
+                </button>
             </div>
         </div>
     </nav>
 
-    <div class="container" style="margin-top: 80px;">
-        <div class="main-container">
-            <!-- Hero Section -->
-            <div class="hero-section">
-                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro</h1>
-                <p class="fs-5 mb-4">Découvrez et notez vos meilleures adresses culinaires</p>
-                
-                <!-- Mode lecture seule - Message informatif -->
-                <div class="read-only-mode alert alert-info d-inline-block" style="display: none;">
-                    <i class="bi bi-eye-fill"></i>
-                    <strong>Mode lecture seule</strong><br>
-                    <small>Connectez-vous à GitHub pour ajouter/modifier des restaurants</small>
-                </div>
-                
-                <!-- Mode édition - Boutons d'action -->
-                <div class="edit-mode-only">
-                    <div class="d-flex justify-content-center gap-3 mb-4">
-                        <button id="findNearbyHero" class="btn btn-light btn-lg">
-                            <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
-                        </button>
-                        <button class="btn btn-outline-light btn-lg" onclick="manualSync()">
-                            <i class="bi bi-cloud-arrow-down"></i> Synchroniser
-                        </button>
-                    </div>
-                    
-                    <div class="alert alert-success d-inline-block">
-                        <i class="bi bi-pencil-fill"></i>
-                        <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
-                        <br><small>Synchronisation automatique avec GitHub</small>
+    <div class="container mt-4">
+        <!-- Header avec statistiques -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-primary text-white">
+                    <div class="card-body">
+                        <h2 id="tested-count">0</h2>
+                        <p class="mb-0">Restaurants testés</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Stats Section -->
-            <div class="container py-5">
-                <div class="row g-4">
-                    <div class="col-md-3">
-                        <div class="card stats-card text-center h-100">
-                            <div class="card-body">
-                                <i class="bi bi-star-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="tested-count">0</h2>
-                                <p class="card-text">Restaurants testés</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card text-center h-100">
-                            <div class="card-body">
-                                <i class="bi bi-heart-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="wishlist-count">0</h2>
-                                <p class="card-text">Dans ma wishlist</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card text-center h-100">
-                            <div class="card-body">
-                                <i class="bi bi-trophy-fill fs-1 mb-2"></i>
-                                <h2 class="card-title" id="avg-rating">--</h2>
-                                <p class="card-text">Note moyenne</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card text-center h-100">
-                            <div class="card-body">
-                                <i class="bi bi-globe fs-1 mb-2"></i>
-                                <h2 class="card-title" id="countries-count">--</h2>
-                                <p class="card-text">Pays explorés</p>
-                            </div>
-                        </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-success text-white">
+                    <div class="card-body">
+                        <h2 id="wishlist-count">0</h2>
+                        <p class="mb-0">En wishlist</p>
                     </div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-warning text-white">
+                    <div class="card-body">
+                        <h2 id="avg-rating">--</h2>
+                        <p class="mb-0">Note moyenne</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-info text-white">
+                    <div class="card-body">
+                        <h2>🍽️</h2>
+                        <p class="mb-0">Bon appétit !</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <!-- Navigation Tabs -->
-            <div class="container">
-                <ul class="nav nav-pills nav-fill mb-4" id="mainTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tested-tab" data-bs-toggle="pill" data-bs-target="#tested" type="button">
-                            <i class="bi bi-star-fill"></i> Restaurants Testés
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="wishlist-tab" data-bs-toggle="pill" data-bs-target="#wishlist" type="button">
-                            <i class="bi bi-heart-fill"></i> Ma Wishlist
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="map-tab" data-bs-toggle="pill" data-bs-target="#map-section" type="button">
-                            <i class="bi bi-geo-alt-fill"></i> Carte Interactive
-                        </button>
-                    </li>
-                </ul>
+        <!-- Onglets de navigation -->
+        <ul class="nav nav-tabs mb-4" id="main-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tested-tab" data-bs-toggle="tab" data-bs-target="#tested" type="button">
+                    <i class="bi bi-star-fill"></i> Restaurants Testés
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="wishlist-tab" data-bs-toggle="tab" data-bs-target="#wishlist" type="button">
+                    <i class="bi bi-heart-fill"></i> Ma Wishlist
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-section" type="button">
+                    <i class="bi bi-geo-alt-fill"></i> Carte
+                </button>
+            </li>
+        </ul>
+
+        <!-- Contenu des onglets -->
+        <div class="tab-content">
+            <!-- Restaurants testés -->
+            <div class="tab-pane fade show active" id="tested" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>🌟 Mes Découvertes</h3>
+                    <button class="btn btn-primary edit-only" id="add-tested" style="display: none;">
+                        <i class="bi bi-plus-lg"></i> Ajouter un restaurant
+                    </button>
+                </div>
+                <div class="row" id="tested-grid">
+                    <!-- Généré par JavaScript -->
+                </div>
             </div>
 
-            <!-- Tab Content -->
-            <div class="tab-content p-4" id="mainTabContent">
-                <!-- Tested Restaurants -->
-                <div class="tab-pane fade show active" id="tested" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3>🌟 Mes Découvertes</h3>
-                        <div class="edit-mode-only">
-                            <button class="btn btn-primary" onclick="openAddModal('tested')">
-                                <i class="bi bi-plus-lg"></i> Ajouter un restaurant
-                            </button>
-                        </div>
-                        <div class="read-only-mode" style="display: none;">
-                            <button class="btn btn-outline-primary" onclick="showGitHubConfig()">
-                                <i class="bi bi-github"></i> Se connecter pour éditer
-                            </button>
-                        </div>
-                    </div>
-                    <div class="row" id="tested-grid">
-                        <!-- Generated by JavaScript -->
-                    </div>
+            <!-- Wishlist -->
+            <div class="tab-pane fade" id="wishlist" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>❤️ Ma Liste d'Envies</h3>
+                    <button class="btn btn-success edit-only" id="add-wishlist" style="display: none;">
+                        <i class="bi bi-plus-lg"></i> Ajouter une envie
+                    </button>
                 </div>
+                <div class="row" id="wishlist-grid">
+                    <!-- Généré par JavaScript -->
+                </div>
+            </div>
 
-                <!-- Wishlist -->
-                <div class="tab-pane fade" id="wishlist" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3>❤️ Ma Liste d'Envies</h3>
-                        <div class="edit-mode-only">
-                            <button class="btn btn-success" onclick="openAddModal('wishlist')">
-                                <i class="bi bi-plus-lg"></i> Ajouter une envie
-                            </button>
-                        </div>
-                        <div class="read-only-mode" style="display: none;">
-                            <button class="btn btn-outline-success" onclick="showGitHubConfig()">
-                                <i class="bi bi-github"></i> Se connecter pour éditer
-                            </button>
-                        </div>
-                    </div>
-                    <div class="row" id="wishlist-grid">
-                        <!-- Generated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Map -->
-                <div class="tab-pane fade" id="map-section" role="tabpanel">
-                    <h3 class="mb-4">🗺️ Carte Interactive</h3>
-                    <div id="map"></div>
-                </div>
+            <!-- Carte -->
+            <div class="tab-pane fade" id="map-section" role="tabpanel">
+                <h3 class="mb-4">🗺️ Carte Interactive</h3>
+                <div id="map"></div>
             </div>
         </div>
     </div>
 
-    <!-- Floating Add Button (Mode édition uniquement) -->
-    <button id="addFloatingBtn" class="btn btn-primary add-button edit-mode-only" title="Ajouter" style="display: none;">
-        <i class="bi bi-plus-lg"></i>
-    </button>
-
-    <!-- Modal Add/Edit Restaurant -->
-    <div class="modal fade" id="restaurantModal" tabindex="-1">
+    <!-- Modal d'ajout/modification -->
+    <div class="modal fade" id="restaurant-modal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle">Ajouter un restaurant</h5>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modal-title">Ajouter un restaurant</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="restaurantForm">
-                        <input type="hidden" id="editId">
-                        <input type="hidden" id="modalType">
+                    <form id="restaurant-form">
+                        <input type="hidden" id="restaurant-id">
+                        <input type="hidden" id="restaurant-type">
                         
+                        <!-- Informations de base -->
                         <div class="row mb-3">
                             <div class="col-md-8">
                                 <label class="form-label">Nom du restaurant *</label>
-                                <input type="text" class="form-control" id="name" required>
+                                <input type="text" class="form-control" id="restaurant-name" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Type de cuisine *</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="cuisineInput" placeholder="Tapez ou choisissez" required>
-                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-chevron-down"></i>
-                                    </button>
-                                    <ul class="dropdown-menu" id="cuisineDropdown">
-                                        <!-- Dynamically populated -->
-                                    </ul>
-                                </div>
-                                <small class="form-text text-muted">Vous pouvez taper un nouveau type de cuisine</small>
+                                <input type="text" class="form-control" id="restaurant-cuisine" required placeholder="ex: français, italien...">
                             </div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Localisation *</label>
-                                <input type="text" class="form-control" id="location" placeholder="ex: 6ème arrondissement, Tokyo, New York" required>
+                                <input type="text" class="form-control" id="restaurant-location" required placeholder="ex: 6ème arrondissement">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Prix</label>
-                                <select class="form-control" id="priceRange">
+                                <select class="form-control" id="restaurant-price">
                                     <option value="€">€ (moins de 20€)</option>
                                     <option value="€€" selected>€€ (20-40€)</option>
                                     <option value="€€€">€€€ (40-80€)</option>
@@ -258,81 +182,58 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Adresse complète</label>
-                            <input type="text" class="form-control" id="address" placeholder="Pour géolocalisation automatique">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Adresse complète</label>
+                                <input type="text" class="form-control" id="restaurant-address" placeholder="Pour la géolocalisation">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Photo (URL)</label>
+                                <input type="url" class="form-control" id="restaurant-photo" placeholder="https://...">
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Photo (URL)</label>
-                            <input type="url" class="form-control" id="photo" placeholder="https://...">
-                        </div>
-
-                        <!-- Ratings section (only for tested restaurants) -->
-                        <div id="ratingsSection" style="display: none;">
-                            <h6 class="mb-3">📊 Notations</h6>
+                        <!-- Section notes (restaurants testés) -->
+                        <div id="ratings-section" style="display: none;">
+                            <h6 class="mb-3 text-primary">📊 Notations</h6>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">🍽️ Plats (coefficient x2)</label>
-                                    <div class="star-rating" data-rating="plats">
-                                        <span class="star" data-value="1">★</span>
-                                        <span class="star" data-value="2">★</span>
-                                        <span class="star" data-value="3">★</span>
-                                        <span class="star" data-value="4">★</span>
-                                        <span class="star" data-value="5">★</span>
-                                    </div>
-                                    <input type="hidden" id="platsRating" value="5">
+                                    <input type="range" class="form-range" id="rating-plats" min="1" max="5" step="0.5" value="5">
+                                    <div class="text-center"><span id="plats-value">5.0</span>/5</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">🍷 Vins (coefficient x1.5)</label>
-                                    <div class="star-rating" data-rating="vins">
-                                        <span class="star" data-value="1">★</span>
-                                        <span class="star" data-value="2">★</span>
-                                        <span class="star" data-value="3">★</span>
-                                        <span class="star" data-value="4">★</span>
-                                        <span class="star" data-value="5">★</span>
-                                    </div>
-                                    <input type="hidden" id="vinsRating" value="5">
+                                    <input type="range" class="form-range" id="rating-vins" min="1" max="5" step="0.5" value="5">
+                                    <div class="text-center"><span id="vins-value">5.0</span>/5</div>
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">😊 Accueil (coefficient x1.5)</label>
-                                    <div class="star-rating" data-rating="accueil">
-                                        <span class="star" data-value="1">★</span>
-                                        <span class="star" data-value="2">★</span>
-                                        <span class="star" data-value="3">★</span>
-                                        <span class="star" data-value="4">★</span>
-                                        <span class="star" data-value="5">★</span>
-                                    </div>
-                                    <input type="hidden" id="accueilRating" value="5">
+                                    <input type="range" class="form-range" id="rating-accueil" min="1" max="5" step="0.5" value="5">
+                                    <div class="text-center"><span id="accueil-value">5.0</span>/5</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">🏛️ Lieu (coefficient x1)</label>
-                                    <div class="star-rating" data-rating="lieu">
-                                        <span class="star" data-value="1">★</span>
-                                        <span class="star" data-value="2">★</span>
-                                        <span class="star" data-value="3">★</span>
-                                        <span class="star" data-value="4">★</span>
-                                        <span class="star" data-value="5">★</span>
-                                    </div>
-                                    <input type="hidden" id="lieuRating" value="5">
+                                    <input type="range" class="form-range" id="rating-lieu" min="1" max="5" step="0.5" value="5">
+                                    <div class="text-center"><span id="lieu-value">5.0</span>/5</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Wishlist specific fields -->
-                        <div id="wishlistSection" style="display: none;">
+                        <!-- Section wishlist -->
+                        <div id="wishlist-section" style="display: none;">
                             <div class="mb-3">
                                 <label class="form-label">💡 Pourquoi voulez-vous tester ce restaurant ?</label>
-                                <textarea class="form-control" id="reason" rows="2" placeholder="ex: Recommandé par un ami..."></textarea>
+                                <textarea class="form-control" id="restaurant-reason" rows="2" placeholder="ex: Recommandé par un ami..."></textarea>
                             </div>
                         </div>
 
-                        <!-- Comment section -->
+                        <!-- Commentaire -->
                         <div class="mb-3">
                             <label class="form-label">💬 Commentaire</label>
-                            <textarea class="form-control" id="comment" rows="3" placeholder="Vos impressions, recommandations..."></textarea>
+                            <textarea class="form-control" id="restaurant-comment" rows="3" placeholder="Vos impressions, recommandations..."></textarea>
                         </div>
                     </form>
                 </div>
@@ -344,86 +245,25 @@
         </div>
     </div>
 
-    <!-- Modal Transfer to Tested -->
-    <div class="modal fade" id="transferModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">🌟 Transférer vers "Testés"</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Ajoutez vos notes pour <strong id="transferRestaurantName"></strong> :</p>
-                    <form id="transferForm">
-                        <input type="hidden" id="transferId">
-                        
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <label class="form-label">🍽️ Plats (x2)</label>
-                                <div class="star-rating" data-rating="transferPlats">
-                                    <span class="star" data-value="1">★</span>
-                                    <span class="star" data-value="2">★</span>
-                                    <span class="star" data-value="3">★</span>
-                                    <span class="star" data-value="4">★</span>
-                                    <span class="star" data-value="5">★</span>
-                                </div>
-                                <input type="hidden" id="transferPlatsRating" value="5">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">🍷 Vins (x1.5)</label>
-                                <div class="star-rating" data-rating="transferVins">
-                                    <span class="star" data-value="1">★</span>
-                                    <span class="star" data-value="2">★</span>
-                                    <span class="star" data-value="3">★</span>
-                                    <span class="star" data-value="4">★</span>
-                                    <span class="star" data-value="5">★</span>
-                                </div>
-                                <input type="hidden" id="transferVinsRating" value="5">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-6">
-                                <label class="form-label">😊 Accueil (x1.5)</label>
-                                <div class="star-rating" data-rating="transferAccueil">
-                                    <span class="star" data-value="1">★</span>
-                                    <span class="star" data-value="2">★</span>
-                                    <span class="star" data-value="3">★</span>
-                                    <span class="star" data-value="4">★</span>
-                                    <span class="star" data-value="5">★</span>
-                                </div>
-                                <input type="hidden" id="transferAccueilRating" value="5">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">🏛️ Lieu (x1)</label>
-                                <div class="star-rating" data-rating="transferLieu">
-                                    <span class="star" data-value="1">★</span>
-                                    <span class="star" data-value="2">★</span>
-                                    <span class="star" data-value="3">★</span>
-                                    <span class="star" data-value="4">★</span>
-                                    <span class="star" data-value="5">★</span>
-                                </div>
-                                <input type="hidden" id="transferLieuRating" value="5">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">💬 Votre avis après visite</label>
-                            <textarea class="form-control" id="transferComment" rows="3" placeholder="Comment s'est passée votre expérience ?"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-success" onclick="transferToTested()">
-                        <i class="bi bi-arrow-right"></i> Transférer
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
+
+    <script>
+        // Mise à jour en temps réel des valeurs des sliders
+        document.addEventListener('DOMContentLoaded', () => {
+            ['plats', 'vins', 'accueil', 'lieu'].forEach(type => {
+                const slider = document.getElementById(`rating-${type}`);
+                const display = document.getElementById(`${type}-value`);
+                
+                if (slider && display) {
+                    slider.addEventListener('input', () => {
+                        display.textContent = parseFloat(slider.value).toFixed(1);
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
