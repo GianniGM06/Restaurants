@@ -32,6 +32,13 @@ class SimpleRestaurantApp {
             await this.loadData();
             this.setupUI();
             this.render();
+            
+            // Setup des fonctionnalités avancées
+            setTimeout(() => {
+                this.updateCuisineDropdown();
+                this.setupCuisineAutocomplete();
+            }, 100);
+            
             this.showToast('✅ Données chargées !', 'success');
         } catch (error) {
             console.error('❌ Erreur initialisation:', error);
@@ -251,12 +258,12 @@ class SimpleRestaurantApp {
         // Boutons synchronisation manuelle
         const syncBtn = document.getElementById('sync-btn');
         if (syncBtn) {
-            syncBtn.onclick = () => this.loadData().then(() => this.render());
+            syncBtn.onclick = () => this.manualSync();
         }
 
         const syncBtnHero = document.getElementById('sync-btn-hero');
         if (syncBtnHero) {
-            syncBtnHero.onclick = () => this.loadData().then(() => this.render());
+            syncBtnHero.onclick = () => this.manualSync();
         }
 
         // Boutons d'ajout
@@ -287,6 +294,124 @@ class SimpleRestaurantApp {
                 setTimeout(() => this.initMap(), 100);
             });
         }
+
+        // Event listener pour l'input de cuisine (autocomplete)
+        this.setupCuisineAutocomplete();
+    }
+
+    setupCuisineAutocomplete() {
+        const cuisineInput = document.getElementById('restaurant-cuisine');
+        const cuisineDropdown = document.getElementById('cuisine-dropdown');
+        
+        if (!cuisineInput || !cuisineDropdown) {
+            return; // Elements pas encore dans le DOM
+        }
+        
+        // Éviter de dupliquer les event listeners
+        cuisineInput.removeEventListener('input', this.handleCuisineInput);
+        cuisineInput.removeEventListener('focus', this.handleCuisineFocus);
+        
+        // Stocker les références pour pouvoir les supprimer
+        this.handleCuisineInput = () => this.filterCuisineOptions(cuisineInput.value);
+        this.handleCuisineFocus = () => this.showCuisineDropdown();
+        this.handleDocumentClick = (e) => {
+            if (!cuisineInput.contains(e.target) && !cuisineDropdown.contains(e.target)) {
+                cuisineDropdown.style.display = 'none';
+            }
+        };
+        
+        cuisineInput.addEventListener('input', this.handleCuisineInput);
+        cuisineInput.addEventListener('focus', this.handleCuisineFocus);
+        
+        // Éviter de dupliquer l'event listener global
+        document.removeEventListener('click', this.handleDocumentClick);
+        document.addEventListener('click', this.handleDocumentClick);
+    }
+
+    updateCuisineDropdown() {
+        const dropdown = document.getElementById('cuisine-dropdown');
+        if (!dropdown) return;
+        
+        // Obtenir tous les types de cuisine uniques
+        const allCuisines = new Set();
+        
+        // Ajouter les types par défaut
+        this.data.cuisineTypes.forEach(type => allCuisines.add(type.value));
+        
+        // Ajouter les types des restaurants existants
+        [...this.data.tested, ...this.data.wishlist].forEach(restaurant => {
+            allCuisines.add(restaurant.type);
+        });
+        
+        // Générer les options
+        const sortedCuisines = Array.from(allCuisines).sort();
+        dropdown.innerHTML = sortedCuisines.map(cuisine => {
+            const cuisineData = this.data.cuisineTypes.find(c => c.value === cuisine);
+            const emoji = cuisineData ? cuisineData.emoji : '🍽️';
+            return `<div class="dropdown-item" onclick="app.selectCuisine('${cuisine}')">${emoji} ${cuisine}</div>`;
+        }).join('');
+    }
+
+    filterCuisineOptions(searchValue) {
+        const dropdown = document.getElementById('cuisine-dropdown');
+        if (!dropdown) return;
+        
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        const search = searchValue.toLowerCase();
+        
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(search) ? 'block' : 'none';
+        });
+        
+        this.showCuisineDropdown();
+    }
+
+    showCuisineDropdown() {
+        const dropdown = document.getElementById('cuisine-dropdown');
+        if (dropdown) {
+            dropdown.style.display = 'block';
+        }
+    }
+
+    selectCuisine(cuisine) {
+        const cuisineInput = document.getElementById('restaurant-cuisine');
+        const dropdown = document.getElementById('cuisine-dropdown');
+        
+        if (cuisineInput) {
+            cuisineInput.value = cuisine;
+        }
+        
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+        
+        // Déclencher l'événement input pour valider le formulaire si nécessaire
+        if (cuisineInput) {
+            cuisineInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    addNewCuisineType(cuisineValue) {
+        const normalizedValue = cuisineValue.toLowerCase().trim();
+        
+        // Vérifier si le type existe déjà
+        const exists = this.data.cuisineTypes.some(type => 
+            type.value.toLowerCase() === normalizedValue
+        );
+        
+        if (!exists && normalizedValue) {
+            const newType = {
+                value: normalizedValue,
+                label: `🍽️ ${cuisineValue}`,
+                emoji: '🍽️'
+            };
+            
+            this.data.cuisineTypes.push(newType);
+            console.log('Nouveau type de cuisine ajouté:', newType);
+        }
+        
+        return normalizedValue;
     }
 
     /* ===== RENDU ===== */
@@ -484,7 +609,13 @@ class SimpleRestaurantApp {
         document.getElementById('ratings-section').style.display = type === 'tested' ? 'block' : 'none';
         document.getElementById('wishlist-section').style.display = type === 'wishlist' ? 'block' : 'none';
         
+        // Mettre à jour la liste des cuisines
+        this.updateCuisineDropdown();
+        
         modal.show();
+        
+        // Setup de l'autocomplete après l'ouverture du modal
+        setTimeout(() => this.setupCuisineAutocomplete(), 100);
     }
 
     editRestaurant(id, type) {
@@ -509,6 +640,12 @@ class SimpleRestaurantApp {
             document.getElementById('rating-vins').value = restaurant.ratings.vins || 5;
             document.getElementById('rating-accueil').value = restaurant.ratings.accueil || 5;
             document.getElementById('rating-lieu').value = restaurant.ratings.lieu || 5;
+            
+            // Mettre à jour les affichages des sliders
+            document.getElementById('plats-value').textContent = (restaurant.ratings.plats || 5).toFixed(1);
+            document.getElementById('vins-value').textContent = (restaurant.ratings.vins || 5).toFixed(1);
+            document.getElementById('accueil-value').textContent = (restaurant.ratings.accueil || 5).toFixed(1);
+            document.getElementById('lieu-value').textContent = (restaurant.ratings.lieu || 5).toFixed(1);
         } else {
             document.getElementById('restaurant-reason').value = restaurant.reason || '';
         }
@@ -518,8 +655,14 @@ class SimpleRestaurantApp {
         document.getElementById('ratings-section').style.display = type === 'tested' ? 'block' : 'none';
         document.getElementById('wishlist-section').style.display = type === 'wishlist' ? 'block' : 'none';
         
+        // Mettre à jour la liste des cuisines
+        this.updateCuisineDropdown();
+        
         const modal = new bootstrap.Modal(document.getElementById('restaurant-modal'));
         modal.show();
+        
+        // Setup de l'autocomplete après l'ouverture du modal
+        setTimeout(() => this.setupCuisineAutocomplete(), 100);
     }
 
     async saveRestaurant() {
@@ -535,10 +678,14 @@ class SimpleRestaurantApp {
         const type = document.getElementById('restaurant-type').value;
         const isEdit = !!id;
         
+        // Traiter le type de cuisine (ajouter s'il est nouveau)
+        const cuisineInput = document.getElementById('restaurant-cuisine').value;
+        const cuisineType = this.addNewCuisineType(cuisineInput);
+        
         const restaurantData = {
             id: isEdit ? parseInt(id) : Date.now(),
             name: document.getElementById('restaurant-name').value,
-            type: document.getElementById('restaurant-cuisine').value,
+            type: cuisineType,
             location: document.getElementById('restaurant-location').value,
             address: document.getElementById('restaurant-address').value,
             priceRange: document.getElementById('restaurant-price').value,
@@ -591,25 +738,179 @@ class SimpleRestaurantApp {
         }
     }
 
-    async moveToTested(id) {
+    /* ===== SYNCHRONISATION BIDIRECTIONNELLE ===== */
+    async manualSync() {
+        if (!this.isEditMode) {
+            await this.loadData();
+            this.render();
+            this.showToast('✅ Données rechargées !', 'success');
+            return;
+        }
+        
+        // En mode édition : sync bidirectionnelle
+        try {
+            this.showToast('🔄 Synchronisation en cours...', 'info');
+            
+            // 1. Recharger depuis GitHub
+            await this.loadData();
+            
+            // 2. Sauvegarder les données actuelles (au cas où il y aurait des conflits)
+            await this.saveToGitHub();
+            
+            this.render();
+            this.showToast('✅ Synchronisation complète réussie !', 'success');
+            
+        } catch (error) {
+            console.error('Erreur synchronisation:', error);
+            this.showToast('❌ Erreur de synchronisation', 'danger');
+        }
+    }
+
+    async forceSync() {
+        if (!this.isEditMode) {
+            this.showToast('❌ Mode lecture seule - impossible de synchroniser', 'warning');
+            return;
+        }
+        
+        try {
+            this.showToast('🔄 Synchronisation forcée...', 'info');
+            await this.saveToGitHub();
+            this.showToast('✅ Données sauvegardées sur GitHub !', 'success');
+        } catch (error) {
+            console.error('Erreur sauvegarde forcée:', error);
+            this.showToast('❌ Erreur de sauvegarde', 'danger');
+        }
+    }
         if (!this.isEditMode) return;
         
         const restaurant = this.data.wishlist.find(r => r.id === id);
         if (!restaurant) return;
         
-        // Demander les notes
+        // Ouvrir le modal de transfert
+        this.openTransferModal(restaurant);
+    }
+
+    openTransferModal(restaurant) {
+        // Créer le modal s'il n'existe pas
+        let modal = document.getElementById('transfer-modal');
+        if (!modal) {
+            modal = this.createTransferModal();
+            document.body.appendChild(modal);
+        }
+        
+        // Remplir les données
+        document.getElementById('transfer-restaurant-name').textContent = restaurant.name;
+        document.getElementById('transfer-restaurant-id').value = restaurant.id;
+        
+        // Reset des sliders
+        ['plats', 'vins', 'accueil', 'lieu'].forEach(type => {
+            const slider = document.getElementById(`transfer-rating-${type}`);
+            const display = document.getElementById(`transfer-${type}-value`);
+            if (slider && display) {
+                slider.value = 5;
+                display.textContent = '5.0';
+            }
+        });
+        
+        document.getElementById('transfer-comment').value = '';
+        
+        // Afficher le modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+
+    createTransferModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'transfer-modal';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🌟 Transférer vers "Testés"</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Ajoutez vos notes pour <strong id="transfer-restaurant-name"></strong> :</p>
+                        <input type="hidden" id="transfer-restaurant-id">
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">🍽️ Plats (x2)</label>
+                                <input type="range" class="form-range" id="transfer-rating-plats" min="1" max="5" step="0.5" value="5">
+                                <div class="text-center"><span id="transfer-plats-value">5.0</span>/5</div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">🍷 Vins (x1.5)</label>
+                                <input type="range" class="form-range" id="transfer-rating-vins" min="1" max="5" step="0.5" value="5">
+                                <div class="text-center"><span id="transfer-vins-value">5.0</span>/5</div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">😊 Accueil (x1.5)</label>
+                                <input type="range" class="form-range" id="transfer-rating-accueil" min="1" max="5" step="0.5" value="5">
+                                <div class="text-center"><span id="transfer-accueil-value">5.0</span>/5</div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">🏛️ Lieu (x1)</label>
+                                <input type="range" class="form-range" id="transfer-rating-lieu" min="1" max="5" step="0.5" value="5">
+                                <div class="text-center"><span id="transfer-lieu-value">5.0</span>/5</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">💬 Votre avis après visite</label>
+                            <textarea class="form-control" id="transfer-comment" rows="3" placeholder="Comment s'est passée votre expérience ?"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-success" onclick="app.confirmTransfer()">
+                            <i class="bi bi-arrow-right"></i> Transférer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Ajouter les event listeners pour les sliders
+        setTimeout(() => {
+            ['plats', 'vins', 'accueil', 'lieu'].forEach(type => {
+                const slider = document.getElementById(`transfer-rating-${type}`);
+                const display = document.getElementById(`transfer-${type}-value`);
+                
+                if (slider && display) {
+                    slider.addEventListener('input', () => {
+                        display.textContent = parseFloat(slider.value).toFixed(1);
+                    });
+                }
+            });
+        }, 100);
+        
+        return modal;
+    }
+
+    async confirmTransfer() {
+        const id = parseInt(document.getElementById('transfer-restaurant-id').value);
+        const restaurant = this.data.wishlist.find(r => r.id === id);
+        if (!restaurant) return;
+        
+        // Récupérer les notes
         const ratings = {
-            plats: parseFloat(prompt('Note pour les plats (1-5) :', '5') || 5),
-            vins: parseFloat(prompt('Note pour les vins (1-5) :', '5') || 5),
-            accueil: parseFloat(prompt('Note pour l\'accueil (1-5) :', '5') || 5),
-            lieu: parseFloat(prompt('Note pour le lieu (1-5) :', '5') || 5)
+            plats: parseFloat(document.getElementById('transfer-rating-plats').value),
+            vins: parseFloat(document.getElementById('transfer-rating-vins').value),
+            accueil: parseFloat(document.getElementById('transfer-rating-accueil').value),
+            lieu: parseFloat(document.getElementById('transfer-rating-lieu').value)
         };
+        
+        const comment = document.getElementById('transfer-comment').value;
         
         // Créer l'entrée testée
         const testedRestaurant = {
             ...restaurant,
             ratings: ratings,
-            dateVisited: new Date().toISOString().split('T')[0]
+            dateVisited: new Date().toISOString().split('T')[0],
+            comment: comment || restaurant.comment
         };
         delete testedRestaurant.reason;
         
@@ -619,6 +920,13 @@ class SimpleRestaurantApp {
         
         await this.saveToGitHub();
         this.render();
+        
+        // Fermer le modal
+        bootstrap.Modal.getInstance(document.getElementById('transfer-modal')).hide();
+        
+        // Activer l'onglet testés
+        document.getElementById('tested-tab').click();
+        
         this.showToast('✅ Restaurant déplacé vers "Testés" !', 'success');
     }
 
@@ -810,5 +1118,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* ===== FONCTIONS GLOBALES ===== */
 function saveRestaurant() {
-    app.saveRestaurant();
+    if (app) app.saveRestaurant();
+}
+
+function selectCuisine(cuisine) {
+    if (app) app.selectCuisine(cuisine);
+}
+
+function confirmTransfer() {
+    if (app) app.confirmTransfer();
 }
