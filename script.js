@@ -31,11 +31,13 @@ class SimpleRestaurantApp {
         console.log('🚀 Début initialisation...');
         
         try {
-            await this.loadData();
-            console.log('✅ Données chargées');
-            
+            // Toujours configurer l'UI d'abord
             this.setupUI();
             console.log('✅ UI configurée');
+            
+            // Essayer de charger les données
+            await this.loadData();
+            console.log('✅ Données chargées');
             
             this.render();
             console.log('✅ Rendu effectué');
@@ -44,12 +46,20 @@ class SimpleRestaurantApp {
             
         } catch (error) {
             console.error('❌ Erreur initialisation:', error);
-            this.showToast('❌ Erreur de chargement', 'danger');
             
-            // Forcer l'affichage même en cas d'erreur
-            this.setupUI();
+            // En cas d'erreur, utiliser les données par défaut et continuer
+            this.data = {
+                tested: this.getDefaultTestedData(),
+                wishlist: this.getDefaultWishlistData(),
+                cuisineTypes: this.getDefaultCuisineTypes()
+            };
+            
             this.render();
+            this.showToast('⚠️ Données par défaut chargées', 'warning');
         }
+        
+        // Mettre à jour le statut final
+        this.updateSyncStatus();
     }
 
     /* ===== CHARGEMENT DES DONNÉES ===== */
@@ -89,12 +99,18 @@ class SimpleRestaurantApp {
             });
             
         } catch (error) {
-            console.warn('⚠️ Erreur chargement GitHub, utilisation données par défaut');
+            console.warn('⚠️ Erreur chargement GitHub:', error.message);
+            console.warn('🔄 Utilisation des données par défaut');
+            
+            // Utiliser les données par défaut
             this.data = {
                 tested: this.getDefaultTestedData(),
                 wishlist: this.getDefaultWishlistData(),
                 cuisineTypes: this.getDefaultCuisineTypes()
             };
+            
+            // Re-lancer l'erreur pour que l'appelant sache qu'il y a eu un problème
+            throw error;
         }
     }
 
@@ -118,6 +134,129 @@ class SimpleRestaurantApp {
             }
         } catch (error) {
             console.warn('⚠️ Impossible de récupérer le SHA:', error);
+        }
+    }
+
+    /* ===== CONFIGURATION UI ===== */
+    setupUI() {
+        console.log('🔧 Configuration UI...');
+        
+        // Mise à jour du statut selon le mode
+        this.updateSyncStatus();
+
+        // Mise à jour de l'indicateur dans la hero section
+        const modeIndicator = document.getElementById('mode-indicator');
+        if (modeIndicator) {
+            if (this.isEditMode) {
+                modeIndicator.className = 'alert alert-success d-inline-block';
+                modeIndicator.innerHTML = `
+                    <i class="bi bi-pencil-fill"></i>
+                    <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
+                    <br><small>Synchronisation automatique avec GitHub</small>
+                `;
+            } else {
+                modeIndicator.className = 'alert alert-info d-inline-block';
+                modeIndicator.innerHTML = `
+                    <i class="bi bi-eye-fill"></i>
+                    <strong>Mode lecture seule</strong><br>
+                    <small>Connectez-vous à GitHub pour ajouter/modifier des restaurants</small>
+                `;
+            }
+        }
+
+        // Afficher/masquer les boutons d'édition
+        const editElements = document.querySelectorAll('.edit-only');
+        editElements.forEach(el => {
+            el.style.display = this.isEditMode ? 'block' : 'none';
+        });
+
+        // Configuration des événements
+        this.setupEventListeners();
+    }
+
+    /* ===== MISE À JOUR DU STATUT ===== */
+    updateSyncStatus() {
+        const statusBadge = document.getElementById('status-badge');
+        if (statusBadge) {
+            if (this.isEditMode) {
+                statusBadge.className = 'badge bg-success fs-6';
+                statusBadge.textContent = '✏️ Mode édition';
+            } else {
+                statusBadge.className = 'badge bg-info fs-6';
+                statusBadge.textContent = '👁️ Mode lecture';
+            }
+        }
+    }
+
+    setupEventListeners() {
+        console.log('🔧 Configuration des event listeners...');
+        
+        try {
+            // Bouton configuration GitHub
+            const githubBtn = document.getElementById('github-config');
+            if (githubBtn) {
+                githubBtn.onclick = () => this.setupGitHub();
+            }
+
+            // Boutons synchronisation manuelle
+            const syncBtn = document.getElementById('sync-btn');
+            if (syncBtn) {
+                syncBtn.onclick = () => this.manualSync();
+            }
+
+            const syncBtnHero = document.getElementById('sync-btn-hero');
+            if (syncBtnHero) {
+                syncBtnHero.onclick = () => this.manualSync();
+            }
+
+            // Boutons d'ajout
+            const addTestedBtn = document.getElementById('add-tested');
+            if (addTestedBtn) {
+                addTestedBtn.onclick = () => this.openAddModal('tested');
+            }
+
+            const addWishlistBtn = document.getElementById('add-wishlist');
+            if (addWishlistBtn) {
+                addWishlistBtn.onclick = () => this.openAddModal('wishlist');
+            }
+
+            // Bouton flottant
+            const floatingBtn = document.getElementById('floating-add-btn');
+            if (floatingBtn) {
+                floatingBtn.onclick = () => {
+                    const activeTab = document.querySelector('.nav-link.active');
+                    const type = (activeTab && activeTab.id.includes('wishlist')) ? 'wishlist' : 'tested';
+                    this.openAddModal(type);
+                };
+            }
+
+            // Onglet carte
+            const mapTab = document.getElementById('map-tab');
+            if (mapTab) {
+                mapTab.addEventListener('shown.bs.tab', () => {
+                    setTimeout(() => this.initMap(), 100);
+                });
+            }
+
+            console.log('✅ Event listeners configurés');
+            
+        } catch (error) {
+            console.warn('⚠️ Erreur setup event listeners:', error);
+        }
+    }
+
+    /* ===== CONFIGURATION GITHUB ===== */
+    setupGitHub() {
+        const token = prompt('Entrez votre token GitHub (commence par ghp_) :');
+        if (token && token.startsWith('ghp_')) {
+            localStorage.setItem('github_token', token);
+            this.githubToken = token;
+            this.isEditMode = true;
+            this.setupUI();
+            this.render();
+            this.showToast('✅ Token GitHub configuré !', 'success');
+        } else if (token) {
+            alert('Token invalide. Il doit commencer par "ghp_"');
         }
     }
 
@@ -193,250 +332,36 @@ class SimpleRestaurantApp {
         }
     }
 
-    /* ===== CONFIGURATION GITHUB ===== */
-    setupGitHub() {
-        const token = prompt('Entrez votre token GitHub (commence par ghp_) :');
-        if (token && token.startsWith('ghp_')) {
-            localStorage.setItem('github_token', token);
-            this.githubToken = token;
-            this.isEditMode = true;
-            this.setupUI();
+    /* ===== SYNCHRONISATION BIDIRECTIONNELLE ===== */
+    async manualSync() {
+        if (!this.isEditMode) {
+            try {
+                await this.loadData();
+                this.render();
+                this.showToast('✅ Données rechargées !', 'success');
+            } catch (error) {
+                this.showToast('⚠️ Impossible de recharger, utilisation données par défaut', 'warning');
+            }
+            return;
+        }
+        
+        // En mode édition : sync bidirectionnelle
+        try {
+            this.showToast('🔄 Synchronisation en cours...', 'info');
+            
+            // 1. Recharger depuis GitHub
+            await this.loadData();
+            
+            // 2. Sauvegarder les données actuelles (au cas où il y aurait des conflits)
+            await this.saveToGitHub();
+            
             this.render();
-            this.showToast('✅ Token GitHub configuré !', 'success');
-        } else if (token) {
-            alert('Token invalide. Il doit commencer par "ghp_"');
-        }
-    }
-
-    /* ===== CONFIGURATION UI ===== */
-    setupUI() {
-        // Mise à jour du badge de statut
-        const statusBadge = document.getElementById('status-badge');
-        if (statusBadge) {
-            if (this.isEditMode) {
-                statusBadge.className = 'badge bg-success fs-6';
-                statusBadge.textContent = '✏️ Mode édition';
-            } else {
-                statusBadge.className = 'badge bg-info fs-6';
-                statusBadge.textContent = '👁️ Mode lecture';
-            }
-        }
-
-        // Mise à jour de l'indicateur dans la hero section
-        const modeIndicator = document.getElementById('mode-indicator');
-        if (modeIndicator) {
-            if (this.isEditMode) {
-                modeIndicator.className = 'alert alert-success d-inline-block';
-                modeIndicator.innerHTML = `
-                    <i class="bi bi-pencil-fill"></i>
-                    <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
-                    <br><small>Synchronisation automatique avec GitHub</small>
-                `;
-            } else {
-                modeIndicator.className = 'alert alert-info d-inline-block';
-                modeIndicator.innerHTML = `
-                    <i class="bi bi-eye-fill"></i>
-                    <strong>Mode lecture seule</strong><br>
-                    <small>Connectez-vous à GitHub pour ajouter/modifier des restaurants</small>
-                `;
-            }
-        }
-
-        // Afficher/masquer les boutons d'édition
-        const editElements = document.querySelectorAll('.edit-only');
-        editElements.forEach(el => {
-            el.style.display = this.isEditMode ? 'block' : 'none';
-        });
-
-        // Configuration des événements
-        this.setupEventListeners();
-    }
-
-    setupEventListeners() {
-        console.log('🔧 Configuration des event listeners...');
-        
-        try {
-            // Bouton configuration GitHub
-            const githubBtn = document.getElementById('github-config');
-            if (githubBtn) {
-                githubBtn.onclick = () => this.setupGitHub();
-            }
-
-            // Boutons synchronisation manuelle
-            const syncBtn = document.getElementById('sync-btn');
-            if (syncBtn) {
-                syncBtn.onclick = () => this.manualSync();
-            }
-
-            const syncBtnHero = document.getElementById('sync-btn-hero');
-            if (syncBtnHero) {
-                syncBtnHero.onclick = () => this.manualSync();
-            }
-
-            // Boutons d'ajout
-            const addTestedBtn = document.getElementById('add-tested');
-            if (addTestedBtn) {
-                addTestedBtn.onclick = () => this.openAddModal('tested');
-            }
-
-            const addWishlistBtn = document.getElementById('add-wishlist');
-            if (addWishlistBtn) {
-                addWishlistBtn.onclick = () => this.openAddModal('wishlist');
-            }
-
-            // Bouton flottant
-            const floatingBtn = document.getElementById('floating-add-btn');
-            if (floatingBtn) {
-                floatingBtn.onclick = () => {
-                    const activeTab = document.querySelector('.nav-link.active');
-                    const type = (activeTab && activeTab.id.includes('wishlist')) ? 'wishlist' : 'tested';
-                    this.openAddModal(type);
-                };
-            }
-
-            // Onglet carte
-            const mapTab = document.getElementById('map-tab');
-            if (mapTab) {
-                mapTab.addEventListener('shown.bs.tab', () => {
-                    setTimeout(() => this.initMap(), 100);
-                });
-            }
-
-            console.log('✅ Event listeners configurés');
+            this.showToast('✅ Synchronisation complète réussie !', 'success');
             
         } catch (error) {
-            console.warn('⚠️ Erreur setup event listeners:', error);
+            console.error('Erreur synchronisation:', error);
+            this.showToast('❌ Erreur de synchronisation', 'danger');
         }
-    }
-
-    setupCuisineAutocomplete() {
-        try {
-            const cuisineInput = document.getElementById('restaurant-cuisine');
-            const cuisineDropdown = document.getElementById('cuisine-dropdown');
-            
-            if (!cuisineInput || !cuisineDropdown) {
-                console.log('⚠️ Éléments cuisine pas encore dans le DOM');
-                return;
-            }
-            
-            console.log('✅ Setup autocomplete cuisine');
-            
-            // Input event
-            cuisineInput.addEventListener('input', (e) => {
-                this.filterCuisineOptions(e.target.value);
-            });
-            
-            // Focus event
-            cuisineInput.addEventListener('focus', () => {
-                this.showCuisineDropdown();
-            });
-            
-            // Click outside
-            document.addEventListener('click', (e) => {
-                if (!cuisineInput.contains(e.target) && !cuisineDropdown.contains(e.target)) {
-                    cuisineDropdown.style.display = 'none';
-                }
-            });
-            
-        } catch (error) {
-            console.warn('⚠️ Erreur setup cuisine autocomplete:', error);
-        }
-    }
-
-    updateCuisineDropdown() {
-        try {
-            const dropdown = document.getElementById('cuisine-dropdown');
-            if (!dropdown) {
-                console.log('⚠️ Dropdown cuisine pas trouvé');
-                return;
-            }
-            
-            // Obtenir tous les types de cuisine uniques
-            const allCuisines = new Set();
-            
-            // Ajouter les types par défaut
-            this.data.cuisineTypes.forEach(type => allCuisines.add(type.value));
-            
-            // Ajouter les types des restaurants existants
-            [...this.data.tested, ...this.data.wishlist].forEach(restaurant => {
-                allCuisines.add(restaurant.type);
-            });
-            
-            // Générer les options
-            const sortedCuisines = Array.from(allCuisines).sort();
-            dropdown.innerHTML = sortedCuisines.map(cuisine => {
-                const cuisineData = this.data.cuisineTypes.find(c => c.value === cuisine);
-                const emoji = cuisineData ? cuisineData.emoji : '🍽️';
-                return `<div class="dropdown-item" onclick="app.selectCuisine('${cuisine}')">${emoji} ${cuisine}</div>`;
-            }).join('');
-            
-            console.log('✅ Dropdown cuisine mise à jour avec', sortedCuisines.length, 'options');
-            
-        } catch (error) {
-            console.warn('⚠️ Erreur update cuisine dropdown:', error);
-        }
-    }
-
-    filterCuisineOptions(searchValue) {
-        const dropdown = document.getElementById('cuisine-dropdown');
-        if (!dropdown) return;
-        
-        const items = dropdown.querySelectorAll('.dropdown-item');
-        const search = searchValue.toLowerCase();
-        
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(search) ? 'block' : 'none';
-        });
-        
-        this.showCuisineDropdown();
-    }
-
-    showCuisineDropdown() {
-        const dropdown = document.getElementById('cuisine-dropdown');
-        if (dropdown) {
-            dropdown.style.display = 'block';
-        }
-    }
-
-    selectCuisine(cuisine) {
-        const cuisineInput = document.getElementById('restaurant-cuisine');
-        const dropdown = document.getElementById('cuisine-dropdown');
-        
-        if (cuisineInput) {
-            cuisineInput.value = cuisine;
-        }
-        
-        if (dropdown) {
-            dropdown.style.display = 'none';
-        }
-        
-        // Déclencher l'événement input pour valider le formulaire si nécessaire
-        if (cuisineInput) {
-            cuisineInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    }
-
-    addNewCuisineType(cuisineValue) {
-        const normalizedValue = cuisineValue.toLowerCase().trim();
-        
-        // Vérifier si le type existe déjà
-        const exists = this.data.cuisineTypes.some(type => 
-            type.value.toLowerCase() === normalizedValue
-        );
-        
-        if (!exists && normalizedValue) {
-            const newType = {
-                value: normalizedValue,
-                label: `🍽️ ${cuisineValue}`,
-                emoji: '🍽️'
-            };
-            
-            this.data.cuisineTypes.push(newType);
-            console.log('Nouveau type de cuisine ajouté:', newType);
-        }
-        
-        return normalizedValue;
     }
 
     /* ===== RENDU ===== */
@@ -645,53 +570,134 @@ class SimpleRestaurantApp {
         }, 200);
     }
 
-    editRestaurant(id, type) {
-        if (!this.isEditMode) return;
-        
-        const restaurant = this.data[type].find(r => r.id === id);
-        if (!restaurant) return;
-        
-        console.log('✏️ Édition restaurant:', restaurant.name);
-        
-        // Remplir le formulaire
-        document.getElementById('restaurant-id').value = id;
-        document.getElementById('restaurant-type').value = type;
-        document.getElementById('restaurant-name').value = restaurant.name;
-        document.getElementById('restaurant-cuisine').value = restaurant.type;
-        document.getElementById('restaurant-location').value = restaurant.location;
-        document.getElementById('restaurant-address').value = restaurant.address || '';
-        document.getElementById('restaurant-price').value = restaurant.priceRange || '€€';
-        document.getElementById('restaurant-photo').value = restaurant.photo || '';
-        document.getElementById('restaurant-comment').value = restaurant.comment || '';
-        
-        if (type === 'tested') {
-            document.getElementById('rating-plats').value = restaurant.ratings.plats || 5;
-            document.getElementById('rating-vins').value = restaurant.ratings.vins || 5;
-            document.getElementById('rating-accueil').value = restaurant.ratings.accueil || 5;
-            document.getElementById('rating-lieu').value = restaurant.ratings.lieu || 5;
+    setupCuisineAutocomplete() {
+        try {
+            const cuisineInput = document.getElementById('restaurant-cuisine');
+            const cuisineDropdown = document.getElementById('cuisine-dropdown');
             
-            // Mettre à jour les affichages des sliders
-            document.getElementById('plats-value').textContent = (restaurant.ratings.plats || 5).toFixed(1);
-            document.getElementById('vins-value').textContent = (restaurant.ratings.vins || 5).toFixed(1);
-            document.getElementById('accueil-value').textContent = (restaurant.ratings.accueil || 5).toFixed(1);
-            document.getElementById('lieu-value').textContent = (restaurant.ratings.lieu || 5).toFixed(1);
-        } else {
-            document.getElementById('restaurant-reason').value = restaurant.reason || '';
+            if (!cuisineInput || !cuisineDropdown) {
+                console.log('⚠️ Éléments cuisine pas encore dans le DOM');
+                return;
+            }
+            
+            console.log('✅ Setup autocomplete cuisine');
+            
+            // Input event
+            cuisineInput.addEventListener('input', (e) => {
+                this.filterCuisineOptions(e.target.value);
+            });
+            
+            // Focus event
+            cuisineInput.addEventListener('focus', () => {
+                this.showCuisineDropdown();
+            });
+            
+            // Click outside
+            document.addEventListener('click', (e) => {
+                if (!cuisineInput.contains(e.target) && !cuisineDropdown.contains(e.target)) {
+                    cuisineDropdown.style.display = 'none';
+                }
+            });
+            
+        } catch (error) {
+            console.warn('⚠️ Erreur setup cuisine autocomplete:', error);
+        }
+    }
+
+    updateCuisineDropdown() {
+        try {
+            const dropdown = document.getElementById('cuisine-dropdown');
+            if (!dropdown) {
+                console.log('⚠️ Dropdown cuisine pas trouvé');
+                return;
+            }
+            
+            // Obtenir tous les types de cuisine uniques
+            const allCuisines = new Set();
+            
+            // Ajouter les types par défaut
+            this.data.cuisineTypes.forEach(type => allCuisines.add(type.value));
+            
+            // Ajouter les types des restaurants existants
+            [...this.data.tested, ...this.data.wishlist].forEach(restaurant => {
+                allCuisines.add(restaurant.type);
+            });
+            
+            // Générer les options
+            const sortedCuisines = Array.from(allCuisines).sort();
+            dropdown.innerHTML = sortedCuisines.map(cuisine => {
+                const cuisineData = this.data.cuisineTypes.find(c => c.value === cuisine);
+                const emoji = cuisineData ? cuisineData.emoji : '🍽️';
+                return `<div class="dropdown-item" onclick="app.selectCuisine('${cuisine}')">${emoji} ${cuisine}</div>`;
+            }).join('');
+            
+            console.log('✅ Dropdown cuisine mise à jour avec', sortedCuisines.length, 'options');
+            
+        } catch (error) {
+            console.warn('⚠️ Erreur update cuisine dropdown:', error);
+        }
+    }
+
+    filterCuisineOptions(searchValue) {
+        const dropdown = document.getElementById('cuisine-dropdown');
+        if (!dropdown) return;
+        
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        const search = searchValue.toLowerCase();
+        
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(search) ? 'block' : 'none';
+        });
+        
+        this.showCuisineDropdown();
+    }
+
+    showCuisineDropdown() {
+        const dropdown = document.getElementById('cuisine-dropdown');
+        if (dropdown) {
+            dropdown.style.display = 'block';
+        }
+    }
+
+    selectCuisine(cuisine) {
+        const cuisineInput = document.getElementById('restaurant-cuisine');
+        const dropdown = document.getElementById('cuisine-dropdown');
+        
+        if (cuisineInput) {
+            cuisineInput.value = cuisine;
         }
         
-        // Ouvrir le modal
-        document.getElementById('modal-title').textContent = `Modifier ${restaurant.name}`;
-        document.getElementById('ratings-section').style.display = type === 'tested' ? 'block' : 'none';
-        document.getElementById('wishlist-section').style.display = type === 'wishlist' ? 'block' : 'none';
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
         
-        const modal = new bootstrap.Modal(document.getElementById('restaurant-modal'));
-        modal.show();
+        // Déclencher l'événement input pour valider le formulaire si nécessaire
+        if (cuisineInput) {
+            cuisineInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    addNewCuisineType(cuisineValue) {
+        const normalizedValue = cuisineValue.toLowerCase().trim();
         
-        // Setup après ouverture du modal
-        setTimeout(() => {
-            this.updateCuisineDropdown();
-            this.setupCuisineAutocomplete();
-        }, 200);
+        // Vérifier si le type existe déjà
+        const exists = this.data.cuisineTypes.some(type => 
+            type.value.toLowerCase() === normalizedValue
+        );
+        
+        if (!exists && normalizedValue) {
+            const newType = {
+                value: normalizedValue,
+                label: `🍽️ ${cuisineValue}`,
+                emoji: '🍽️'
+            };
+            
+            this.data.cuisineTypes.push(newType);
+            console.log('Nouveau type de cuisine ajouté:', newType);
+        }
+        
+        return normalizedValue;
     }
 
     async saveRestaurant() {
@@ -753,6 +759,55 @@ class SimpleRestaurantApp {
         this.showToast(isEdit ? '✅ Restaurant modifié !' : '✅ Restaurant ajouté !', 'success');
     }
 
+    editRestaurant(id, type) {
+        if (!this.isEditMode) return;
+        
+        const restaurant = this.data[type].find(r => r.id === id);
+        if (!restaurant) return;
+        
+        console.log('✏️ Édition restaurant:', restaurant.name);
+        
+        // Remplir le formulaire
+        document.getElementById('restaurant-id').value = id;
+        document.getElementById('restaurant-type').value = type;
+        document.getElementById('restaurant-name').value = restaurant.name;
+        document.getElementById('restaurant-cuisine').value = restaurant.type;
+        document.getElementById('restaurant-location').value = restaurant.location;
+        document.getElementById('restaurant-address').value = restaurant.address || '';
+        document.getElementById('restaurant-price').value = restaurant.priceRange || '€€';
+        document.getElementById('restaurant-photo').value = restaurant.photo || '';
+        document.getElementById('restaurant-comment').value = restaurant.comment || '';
+        
+        if (type === 'tested') {
+            document.getElementById('rating-plats').value = restaurant.ratings.plats || 5;
+            document.getElementById('rating-vins').value = restaurant.ratings.vins || 5;
+            document.getElementById('rating-accueil').value = restaurant.ratings.accueil || 5;
+            document.getElementById('rating-lieu').value = restaurant.ratings.lieu || 5;
+            
+            // Mettre à jour les affichages des sliders
+            document.getElementById('plats-value').textContent = (restaurant.ratings.plats || 5).toFixed(1);
+            document.getElementById('vins-value').textContent = (restaurant.ratings.vins || 5).toFixed(1);
+            document.getElementById('accueil-value').textContent = (restaurant.ratings.accueil || 5).toFixed(1);
+            document.getElementById('lieu-value').textContent = (restaurant.ratings.lieu || 5).toFixed(1);
+        } else {
+            document.getElementById('restaurant-reason').value = restaurant.reason || '';
+        }
+        
+        // Ouvrir le modal
+        document.getElementById('modal-title').textContent = `Modifier ${restaurant.name}`;
+        document.getElementById('ratings-section').style.display = type === 'tested' ? 'block' : 'none';
+        document.getElementById('wishlist-section').style.display = type === 'wishlist' ? 'block' : 'none';
+        
+        const modal = new bootstrap.Modal(document.getElementById('restaurant-modal'));
+        modal.show();
+        
+        // Setup après ouverture du modal
+        setTimeout(() => {
+            this.updateCuisineDropdown();
+            this.setupCuisineAutocomplete();
+        }, 200);
+    }
+
     async deleteRestaurant(id, type) {
         if (!this.isEditMode) return;
         
@@ -767,49 +822,7 @@ class SimpleRestaurantApp {
         }
     }
 
-    /* ===== SYNCHRONISATION BIDIRECTIONNELLE ===== */
-    async manualSync() {
-        if (!this.isEditMode) {
-            await this.loadData();
-            this.render();
-            this.showToast('✅ Données rechargées !', 'success');
-            return;
-        }
-        
-        // En mode édition : sync bidirectionnelle
-        try {
-            this.showToast('🔄 Synchronisation en cours...', 'info');
-            
-            // 1. Recharger depuis GitHub
-            await this.loadData();
-            
-            // 2. Sauvegarder les données actuelles (au cas où il y aurait des conflits)
-            await this.saveToGitHub();
-            
-            this.render();
-            this.showToast('✅ Synchronisation complète réussie !', 'success');
-            
-        } catch (error) {
-            console.error('Erreur synchronisation:', error);
-            this.showToast('❌ Erreur de synchronisation', 'danger');
-        }
-    }
-
-    async forceSync() {
-        if (!this.isEditMode) {
-            this.showToast('❌ Mode lecture seule - impossible de synchroniser', 'warning');
-            return;
-        }
-        
-        try {
-            this.showToast('🔄 Synchronisation forcée...', 'info');
-            await this.saveToGitHub();
-            this.showToast('✅ Données sauvegardées sur GitHub !', 'success');
-        } catch (error) {
-            console.error('Erreur sauvegarde forcée:', error);
-            this.showToast('❌ Erreur de sauvegarde', 'danger');
-        }
-    }
+    moveToTested(id) {
         if (!this.isEditMode) return;
         
         const restaurant = this.data.wishlist.find(r => r.id === id);
@@ -1025,18 +1038,6 @@ class SimpleRestaurantApp {
     }
 
     /* ===== UTILITAIRES ===== */
-    updateSyncStatus(status) {
-        try {
-            const statusBadge = document.getElementById('status-badge');
-            if (statusBadge) {
-                statusBadge.textContent = status;
-                console.log('📊 Status mis à jour:', status);
-            }
-        } catch (error) {
-            console.warn('⚠️ Erreur update status:', error);
-        }
-    }
-
     calculateRating(ratings) {
         return (ratings.plats * 2 + ratings.vins * 1.5 + ratings.accueil * 1.5 + ratings.lieu * 1) / 6;
     }
