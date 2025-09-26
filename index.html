@@ -13,139 +13,567 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        .restaurant-card {
-            transition: transform 0.2s;
+        /* ===== VARIABLES CSS ===== */
+        :root {
+            --bs-primary: #0d6efd;
+            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --card-shadow-hover: 0 8px 15px rgba(0,0,0,0.2);
         }
-        .restaurant-card:hover {
+
+        /* ===== LAYOUT GÉNÉRAL ===== */
+        body {
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        /* ===== HERO SECTION ===== */
+        .hero-section {
+            background: var(--gradient-bg);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero-section h1 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .hero-section p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        /* ===== CARDS & STATS ===== */
+        .stats-card {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-card:hover {
             transform: translateY(-5px);
         }
+
+        .stats-card .card-body {
+            padding: 2rem 1rem;
+        }
+
+        .stats-card h2 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ===== RESTAURANT CARDS ===== */
+        .restaurant-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .restaurant-card .card-img-top {
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .restaurant-card:hover .card-img-top {
+            transform: scale(1.05);
+        }
+
         .wishlist-card {
+            border-left: 4px solid #198754;
             background: linear-gradient(45deg, #f8fff9, #d1e7dd);
         }
+
+        .restaurant-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .restaurant-card .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ===== BADGES ===== */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* ===== RATING SYSTEM ===== */
+        .rating-section {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid #e9ecef;
+        }
+
+        .final-rating {
+            background: linear-gradient(45deg, var(--bs-primary), #4c63d2);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin: 1rem 0;
+            box-shadow: 0 2px 10px rgba(13, 110, 253, 0.3);
+        }
+
+        .stars {
+            color: #ffc107;
+            font-size: 1rem;
+        }
+
+        /* ===== ACTION BUTTONS ===== */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* ===== FLOATING BUTTON ===== */
+        .add-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .add-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+        }
+
+        /* ===== MAP ===== */
         #map {
             height: 500px;
+            border-radius: 15px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #e9ecef;
+        }
+
+        /* ===== MODALS ===== */
+        .modal-header {
+            background: var(--gradient-bg);
+            color: white;
+            border-bottom: none;
+        }
+
+        .modal-header .modal-title {
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 1rem 2rem;
+        }
+
+        /* ===== FORMS ===== */
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        /* ===== TABS ===== */
+        .nav-pills .nav-link {
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 0 0.25rem;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-pills .nav-link.active {
+            background: var(--gradient-bg);
+            color: white;
+        }
+
+        /* ===== EMPTY STATES ===== */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            color: #495057;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ===== ALERTS ===== */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            font-size: 0.9rem;
+        }
+
+        .alert-success {
+            background: linear-gradient(45deg, #d4edda, #c3e6cb);
+            color: #155724;
+        }
+
+        .alert-info {
+            background: linear-gradient(45deg, #cce7ff, #b3d9ff);
+            color: #0c5460;
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 2rem 1rem;
+            }
+            
+            .hero-section h1 {
+                font-size: 2rem;
+            }
+            
+            .main-container {
+                margin: 1rem 0;
+                border-radius: 0;
+            }
+            
+            .add-button {
+                bottom: 15px;
+                right: 15px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            .stats-card .card-body {
+                padding: 1.5rem 1rem;
+            }
+
+            .stats-card h2 {
+                font-size: 2rem;
+            }
+
+            .restaurant-card .card-body {
+                padding: 1rem;
+            }
+
+            .action-buttons {
+                justify-content: center;
+                gap: 5px;
+            }
+
+            .btn-action {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .restaurant-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+            }
+        }
+
+        .add-button:hover {
+            animation: pulse 2s infinite;
+        }
+
+        /* ===== UTILITIES ===== */
+        .text-gradient {
+            background: var(--gradient-bg);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .border-gradient {
+            border: 2px solid transparent;
+            background: linear-gradient(white, white) padding-box, 
+                        var(--gradient-bg) border-box;
             border-radius: 10px;
         }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-cup-hot"></i>
+            <a class="navbar-brand fw-bold fs-3" href="#">
+                <i class="bi bi-cup-hot text-primary"></i>
                 Mon Carnet Gastro
-                <span id="status-badge" class="badge bg-secondary ms-2">⚙️ Chargement...</span>
+                <span id="status-badge" class="badge bg-secondary fs-6">⚙️ Chargement...</span>
             </a>
-            
-            <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-light me-2" id="sync-btn" title="Recharger les données">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
-                <button class="btn btn-outline-light" id="github-config" title="Configuration GitHub">
-                    <i class="bi bi-github"></i>
-                </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <button class="btn btn-outline-secondary me-2" id="sync-btn" title="Recharger les données">
+                            <i class="bi bi-arrow-clockwise"></i> Synchroniser
+                        </button>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="githubDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-github"></i> GitHub
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" id="github-config">
+                                <i class="bi bi-gear"></i> Configuration GitHub
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <!-- Header avec statistiques -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card text-center bg-primary text-white">
-                    <div class="card-body">
-                        <h2 id="tested-count">0</h2>
-                        <p class="mb-0">Restaurants testés</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center bg-success text-white">
-                    <div class="card-body">
-                        <h2 id="wishlist-count">0</h2>
-                        <p class="mb-0">En wishlist</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center bg-warning text-white">
-                    <div class="card-body">
-                        <h2 id="avg-rating">--</h2>
-                        <p class="mb-0">Note moyenne</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center bg-info text-white">
-                    <div class="card-body">
-                        <h2>🍽️</h2>
-                        <p class="mb-0">Bon appétit !</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Onglets de navigation -->
-        <ul class="nav nav-tabs mb-4" id="main-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="tested-tab" data-bs-toggle="tab" data-bs-target="#tested" type="button">
-                    <i class="bi bi-star-fill"></i> Restaurants Testés
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="wishlist-tab" data-bs-toggle="tab" data-bs-target="#wishlist" type="button">
-                    <i class="bi bi-heart-fill"></i> Ma Wishlist
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-section" type="button">
-                    <i class="bi bi-geo-alt-fill"></i> Carte
-                </button>
-            </li>
-        </ul>
-
-        <!-- Contenu des onglets -->
-        <div class="tab-content">
-            <!-- Restaurants testés -->
-            <div class="tab-pane fade show active" id="tested" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3>🌟 Mes Découvertes</h3>
-                    <button class="btn btn-primary edit-only" id="add-tested" style="display: none;">
-                        <i class="bi bi-plus-lg"></i> Ajouter un restaurant
+    <div class="container" style="margin-top: 80px;">
+        <div class="main-container">
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <h1 class="display-4 fw-bold mb-3">Mon Carnet Gastro</h1>
+                <p class="fs-5 mb-4">Découvrez, notez et partagez vos meilleures adresses culinaires</p>
+                
+                <div class="d-flex justify-content-center gap-3 mb-4">
+                    <button class="btn btn-light btn-lg">
+                        <i class="bi bi-geo-alt-fill"></i> Restaurants près de moi
+                    </button>
+                    <button class="btn btn-outline-light btn-lg" id="sync-btn-hero">
+                        <i class="bi bi-cloud-arrow-down"></i> Synchroniser
                     </button>
                 </div>
-                <div class="row" id="tested-grid">
-                    <!-- Généré par JavaScript -->
+                
+                <!-- Indicateur dynamique selon le mode -->
+                <div class="alert alert-info d-inline-block" id="mode-indicator">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <strong>Application en chargement...</strong>
                 </div>
             </div>
 
-            <!-- Wishlist -->
-            <div class="tab-pane fade" id="wishlist" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3>❤️ Ma Liste d'Envies</h3>
-                    <button class="btn btn-success edit-only" id="add-wishlist" style="display: none;">
-                        <i class="bi bi-plus-lg"></i> Ajouter une envie
-                    </button>
-                </div>
-                <div class="row" id="wishlist-grid">
-                    <!-- Généré par JavaScript -->
+            <!-- Stats Section -->
+            <div class="container py-5">
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-star-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="tested-count">0</h2>
+                                <p class="card-text">Restaurants testés</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-heart-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="wishlist-count">0</h2>
+                                <p class="card-text">Dans ma wishlist</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-trophy-fill fs-1 mb-2"></i>
+                                <h2 class="card-title" id="avg-rating">--</h2>
+                                <p class="card-text">Note moyenne</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card stats-card text-center h-100">
+                            <div class="card-body">
+                                <i class="bi bi-globe fs-1 mb-2"></i>
+                                <h2 class="card-title">🍽️</h2>
+                                <p class="card-text">Bon appétit !</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Carte -->
-            <div class="tab-pane fade" id="map-section" role="tabpanel">
-                <h3 class="mb-4">🗺️ Carte Interactive</h3>
-                <div id="map"></div>
+            <!-- Navigation Tabs -->
+            <div class="container">
+                <ul class="nav nav-pills nav-fill mb-4" id="mainTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tested-tab" data-bs-toggle="pill" data-bs-target="#tested" type="button">
+                            <i class="bi bi-star-fill"></i> Restaurants Testés
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="wishlist-tab" data-bs-toggle="pill" data-bs-target="#wishlist" type="button">
+                            <i class="bi bi-heart-fill"></i> Ma Wishlist
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="map-tab" data-bs-toggle="pill" data-bs-target="#map-section" type="button">
+                            <i class="bi bi-geo-alt-fill"></i> Carte Interactive
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content p-4" id="mainTabContent">
+                <!-- Tested Restaurants -->
+                <div class="tab-pane fade show active" id="tested" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>🌟 Mes Découvertes</h3>
+                        <button class="btn btn-primary edit-only" id="add-tested" style="display: none;">
+                            <i class="bi bi-plus-lg"></i> Ajouter un restaurant
+                        </button>
+                    </div>
+                    <div class="row" id="tested-grid">
+                        <!-- Généré par JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Wishlist -->
+                <div class="tab-pane fade" id="wishlist" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3>❤️ Ma Liste d'Envies</h3>
+                        <button class="btn btn-success edit-only" id="add-wishlist" style="display: none;">
+                            <i class="bi bi-plus-lg"></i> Ajouter une envie
+                        </button>
+                    </div>
+                    <div class="row" id="wishlist-grid">
+                        <!-- Généré par JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="tab-pane fade" id="map-section" role="tabpanel">
+                    <h3 class="mb-4">🗺️ Carte Interactive</h3>
+                    <div id="map"></div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Floating Add Button -->
+    <button id="floating-add-btn" class="btn btn-primary add-button edit-only" title="Ajouter" style="display: none;">
+        <i class="bi bi-plus-lg"></i>
+    </button>
 
     <!-- Modal d'ajout/modification -->
     <div class="modal fade" id="restaurant-modal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header">
                     <h5 class="modal-title" id="modal-title">Ajouter un restaurant</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -263,6 +691,26 @@
                     });
                 }
             });
+
+            // Bouton de synchronisation dans le hero
+            const syncBtnHero = document.getElementById('sync-btn-hero');
+            if (syncBtnHero) {
+                syncBtnHero.addEventListener('click', () => {
+                    if (app) {
+                        app.loadData().then(() => app.render());
+                    }
+                });
+            }
+
+            // Bouton flottant
+            const floatingBtn = document.getElementById('floating-add-btn');
+            if (floatingBtn) {
+                floatingBtn.addEventListener('click', () => {
+                    const activeTab = document.querySelector('.nav-link.active');
+                    const type = (activeTab && activeTab.id.includes('wishlist')) ? 'wishlist' : 'tested';
+                    if (app) app.openAddModal(type);
+                });
+            }
         });
     </script>
 </body>
