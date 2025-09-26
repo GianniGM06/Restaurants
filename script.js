@@ -175,10 +175,14 @@ class SimpleRestaurantApp {
     }
 
     /* ===== MISE À JOUR DU STATUT ===== */
-    updateSyncStatus() {
+    updateSyncStatus(customStatus = null) {
         const statusBadge = document.getElementById('status-badge');
         if (statusBadge) {
-            if (this.isEditMode) {
+            if (customStatus) {
+                // Statut temporaire personnalisé
+                statusBadge.className = 'badge bg-warning fs-6';
+                statusBadge.textContent = customStatus;
+            } else if (this.isEditMode) {
                 statusBadge.className = 'badge bg-success fs-6';
                 statusBadge.textContent = '✏️ Mode édition';
             } else {
@@ -198,15 +202,29 @@ class SimpleRestaurantApp {
                 githubBtn.onclick = () => this.setupGitHub();
             }
 
-            // Boutons synchronisation manuelle
+            // Boutons synchronisation/sauvegarde
             const syncBtn = document.getElementById('sync-btn');
             if (syncBtn) {
                 syncBtn.onclick = () => this.manualSync();
+                // Mettre à jour le texte selon le mode
+                if (this.isEditMode) {
+                    syncBtn.innerHTML = '<i class="bi bi-cloud-upload"></i> Sauvegarder';
+                    syncBtn.title = 'Sauvegarder vers GitHub';
+                } else {
+                    syncBtn.innerHTML = '<i class="bi bi-cloud-download"></i> Recharger';
+                    syncBtn.title = 'Recharger depuis GitHub';
+                }
             }
 
             const syncBtnHero = document.getElementById('sync-btn-hero');
             if (syncBtnHero) {
                 syncBtnHero.onclick = () => this.manualSync();
+                // Mettre à jour le texte selon le mode
+                if (this.isEditMode) {
+                    syncBtnHero.innerHTML = '<i class="bi bi-cloud-upload"></i> Sauvegarder';
+                } else {
+                    syncBtnHero.innerHTML = '<i class="bi bi-cloud-download"></i> Recharger';
+                }
             }
 
             // Boutons d'ajout
@@ -252,9 +270,9 @@ class SimpleRestaurantApp {
             localStorage.setItem('github_token', token);
             this.githubToken = token;
             this.isEditMode = true;
-            this.setupUI();
+            this.setupUI(); // Reconfigure toute l'UI avec le nouveau mode
             this.render();
-            this.showToast('✅ Token GitHub configuré !', 'success');
+            this.showToast('✅ Token GitHub configuré ! Mode édition activé.', 'success');
         } else if (token) {
             alert('Token invalide. Il doit commencer par "ghp_"');
         }
@@ -332,35 +350,76 @@ class SimpleRestaurantApp {
         }
     }
 
-    /* ===== SYNCHRONISATION BIDIRECTIONNELLE ===== */
+    /* ===== SYNCHRONISATION ET SAUVEGARDE ===== */
     async manualSync() {
         if (!this.isEditMode) {
+            // En mode lecture : juste recharger
             try {
                 await this.loadData();
                 this.render();
-                this.showToast('✅ Données rechargées !', 'success');
+                this.showToast('✅ Données rechargées depuis GitHub !', 'success');
             } catch (error) {
-                this.showToast('⚠️ Impossible de recharger, utilisation données par défaut', 'warning');
+                this.showToast('⚠️ Impossible de recharger depuis GitHub', 'warning');
             }
             return;
         }
         
-        // En mode édition : sync bidirectionnelle
+        // En mode édition : SAUVEGARDER vers GitHub
         try {
-            this.showToast('🔄 Synchronisation en cours...', 'info');
+            this.showToast('💾 Sauvegarde en cours...', 'info');
+            const success = await this.saveToGitHub();
             
-            // 1. Recharger depuis GitHub
-            await this.loadData();
-            
-            // 2. Sauvegarder les données actuelles (au cas où il y aurait des conflits)
-            await this.saveToGitHub();
-            
-            this.render();
-            this.showToast('✅ Synchronisation complète réussie !', 'success');
+            if (success) {
+                this.showToast('✅ Données sauvegardées sur GitHub !', 'success');
+            }
             
         } catch (error) {
-            console.error('Erreur synchronisation:', error);
-            this.showToast('❌ Erreur de synchronisation', 'danger');
+            console.error('Erreur sauvegarde:', error);
+            this.showToast('❌ Erreur de sauvegarde', 'danger');
+        }
+    }
+
+    // Nouvelle fonction pour recharger depuis GitHub (si besoin)
+    async reloadFromGitHub() {
+        try {
+            this.showToast('🔄 Rechargement depuis GitHub...', 'info');
+            await this.loadData();
+            this.render();
+            this.showToast('✅ Données rechargées depuis GitHub !', 'success');
+        } catch (error) {
+            console.error('Erreur rechargement:', error);
+            this.showToast('❌ Erreur de rechargement', 'danger');
+        }
+    }
+
+    // Sauvegarde automatique après chaque modification
+    async autoSave() {
+        if (!this.isEditMode) return;
+        
+        console.log('💾 Sauvegarde automatique...');
+        
+        // Indicateur visuel discret
+        this.updateSyncStatus('💾 Sauvegarde...');
+        
+        try {
+            await this.saveToGitHub();
+            console.log('✅ Sauvegarde automatique réussie');
+            this.updateSyncStatus('✅ Sauvegardé');
+            
+            // Remettre le statut normal après 2 secondes
+            setTimeout(() => {
+                this.updateSyncStatus();
+            }, 2000);
+            
+        } catch (error) {
+            console.error('❌ Erreur sauvegarde automatique:', error);
+            this.updateSyncStatus('❌ Erreur');
+            this.showToast('⚠️ Erreur sauvegarde automatique - utilisez le bouton Sauvegarder', 'warning');
+            
+            // Remettre le statut normal après 3 secondes
+            setTimeout(() => {
+                this.updateSyncStatus();
+            }, 3000);
         }
     }
 
@@ -749,14 +808,15 @@ class SimpleRestaurantApp {
             this.data[type].push(restaurantData);
         }
         
-        // Sauvegarder
-        await this.saveToGitHub();
-        
-        // Fermer le modal et re-render
+        // Fermer le modal et re-render immédiatement
         bootstrap.Modal.getInstance(document.getElementById('restaurant-modal')).hide();
         this.render();
         
+        // Notification locale immédiate
         this.showToast(isEdit ? '✅ Restaurant modifié !' : '✅ Restaurant ajouté !', 'success');
+        
+        // Sauvegarde automatique en arrière-plan
+        await this.autoSave();
     }
 
     editRestaurant(id, type) {
@@ -815,10 +875,13 @@ class SimpleRestaurantApp {
         if (!restaurant) return;
         
         if (confirm(`Supprimer "${restaurant.name}" ?`)) {
+            // Supprimer immédiatement
             this.data[type] = this.data[type].filter(r => r.id !== id);
-            await this.saveToGitHub();
             this.render();
             this.showToast('✅ Restaurant supprimé !', 'success');
+            
+            // Sauvegarde automatique en arrière-plan
+            await this.autoSave();
         }
     }
 
@@ -956,20 +1019,21 @@ class SimpleRestaurantApp {
         };
         delete testedRestaurant.reason;
         
-        // Déplacer
+        // Déplacer immédiatement
         this.data.tested.push(testedRestaurant);
         this.data.wishlist = this.data.wishlist.filter(r => r.id !== id);
         
-        await this.saveToGitHub();
-        this.render();
-        
-        // Fermer le modal
+        // Fermer le modal et mettre à jour l'affichage
         bootstrap.Modal.getInstance(document.getElementById('transfer-modal')).hide();
         
         // Activer l'onglet testés
         document.getElementById('tested-tab').click();
+        this.render();
         
         this.showToast('✅ Restaurant déplacé vers "Testés" !', 'success');
+        
+        // Sauvegarde automatique en arrière-plan
+        await this.autoSave();
     }
 
     /* ===== CARTE ===== */
