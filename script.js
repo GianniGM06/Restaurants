@@ -68,9 +68,10 @@ class SimpleRestaurantApp {
         console.log('🔧 Configuration:', this.config);
         
         try {
-            // Charger depuis GitHub (URL simple sans cache-busting)
-            const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}`;
-            console.log('🔗 URL de chargement:', url);
+            // Charger depuis GitHub avec cache-busting simple (utilise un paramètre standard)
+            const cacheBuster = Math.floor(Date.now() / 1000); // Timestamp en secondes
+            const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}?_=${cacheBuster}`;
+            console.log('🔗 URL de chargement (cache-busting):', url);
             
             const response = await fetch(url);
             console.log('📨 Réponse fetch status:', response.status);
@@ -87,7 +88,8 @@ class SimpleRestaurantApp {
             console.log('📊 Données trouvées:', {
                 tested: jsonData.tested?.length || 0,
                 wishlist: jsonData.wishlist?.length || 0,
-                cuisineTypes: Object.keys(jsonData.cuisineTypes || {}).length
+                cuisineTypes: Object.keys(jsonData.cuisineTypes || {}).length,
+                lastUpdated: jsonData.metadata?.lastUpdated || 'Non défini'
             });
             
             // Si on est en mode édition, récupérer aussi le SHA pour les mises à jour
@@ -107,6 +109,13 @@ class SimpleRestaurantApp {
                 wishlist: this.data.wishlist.length,
                 cuisines: this.data.cuisineTypes.length
             });
+            
+            // Afficher la date de dernière mise à jour si disponible
+            if (jsonData.metadata?.lastUpdated) {
+                const lastUpdate = new Date(jsonData.metadata.lastUpdated);
+                console.log('🕒 Dernière mise à jour:', lastUpdate.toLocaleString());
+                this.showToast(`📅 Données du ${lastUpdate.toLocaleString()}`, 'info');
+            }
             
         } catch (error) {
             console.warn('⚠️ Erreur chargement GitHub:', error.message);
@@ -183,7 +192,7 @@ class SimpleRestaurantApp {
                 modeIndicator.innerHTML = `
                     <i class="bi bi-pencil-fill"></i>
                     <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
-                    <br><small>💡 Après modification, faites <kbd>Ctrl+F5</kbd> pour voir les changements</small>
+                    <br><small>💡 Les données sont automatiquement mises à jour à chaque F5</small>
                 `;
             } else {
                 modeIndicator.className = 'alert alert-info d-inline-block';
@@ -483,7 +492,7 @@ class SimpleRestaurantApp {
             const success = await this.saveToGitHub();
             
             if (success) {
-                this.showToast('✅ Sauvegardé ! Faites Ctrl+F5 pour voir les changements', 'success');
+                this.showToast('✅ Sauvegardé ! Les données seront automatiquement à jour au prochain F5', 'success');
             }
             
         } catch (error) {
@@ -583,7 +592,7 @@ class SimpleRestaurantApp {
             
             if (success) {
                 console.log('✅ Sauvegarde automatique réussie');
-                this.updateSyncStatus('✅ Sauvegardé - Ctrl+F5 pour actualiser');
+                this.updateSyncStatus('✅ Sauvegardé - F5 pour actualiser');
                 
                 // Remettre le statut normal après 3 secondes
                 setTimeout(() => {
@@ -995,7 +1004,7 @@ class SimpleRestaurantApp {
         this.render();
         
         // Notification locale immédiate
-        this.showToast(isEdit ? '✅ Restaurant modifié ! (Ctrl+F5 pour synchroniser)' : '✅ Restaurant ajouté ! (Ctrl+F5 pour synchroniser)', 'success');
+        this.showToast(isEdit ? '✅ Restaurant modifié ! (F5 pour synchroniser)' : '✅ Restaurant ajouté ! (F5 pour synchroniser)', 'success');
         
         // Sauvegarde automatique en arrière-plan
         await this.autoSave();
@@ -1060,7 +1069,7 @@ class SimpleRestaurantApp {
             // Supprimer immédiatement
             this.data[type] = this.data[type].filter(r => r.id !== id);
             this.render();
-            this.showToast('✅ Restaurant supprimé ! (Ctrl+F5 pour synchroniser)', 'success');
+            this.showToast('✅ Restaurant supprimé ! (F5 pour synchroniser)', 'success');
             
             // Sauvegarde automatique en arrière-plan
             await this.autoSave();
@@ -1212,7 +1221,7 @@ class SimpleRestaurantApp {
         document.getElementById('tested-tab').click();
         this.render();
         
-        this.showToast('✅ Restaurant déplacé vers "Testés" ! (Ctrl+F5 pour synchroniser)', 'success');
+        this.showToast('✅ Restaurant déplacé vers "Testés" ! (F5 pour synchroniser)', 'success');
         
         // Sauvegarde automatique en arrière-plan
         await this.autoSave();
