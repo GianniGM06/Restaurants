@@ -68,22 +68,17 @@ class SimpleRestaurantApp {
         console.log('🔧 Configuration:', this.config);
         
         try {
-            // Charger depuis GitHub avec cache-busting simple (utilise un paramètre standard)
-            const cacheBuster = Math.floor(Date.now() / 1000); // Timestamp en secondes
-            const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}?_=${cacheBuster}`;
-            console.log('🔗 URL de chargement (cache-busting):', url);
+            let jsonData;
             
-            const response = await fetch(url);
-            console.log('📨 Réponse fetch status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Si on a un token GitHub, utiliser l'API (immédiatement à jour)
+            if (this.githubToken) {
+                console.log('🔑 Chargement via API GitHub (immédiat)...');
+                jsonData = await this.loadFromAPI();
+            } else {
+                console.log('🌐 Chargement via raw.githubusercontent.com (peut avoir du délai)...');
+                jsonData = await this.loadFromRaw();
             }
             
-            const text = await response.text();
-            console.log('📄 Texte reçu (début):', text.substring(0, 200) + '...');
-            
-            const jsonData = JSON.parse(text);
             console.log('✅ JSON parsé avec succès');
             console.log('📊 Données trouvées:', {
                 tested: jsonData.tested?.length || 0,
@@ -139,6 +134,54 @@ class SimpleRestaurantApp {
         }
     }
 
+    /* ===== CHARGEMENT VIA API GITHUB (IMMÉDIAT) ===== */
+    async loadFromAPI() {
+        const url = `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/contents/${this.config.fileName}`;
+        console.log('🔗 URL API GitHub:', url);
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${this.githubToken}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
+        console.log('📨 Réponse API status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`GitHub API Error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Décoder le contenu base64
+        const content = atob(data.content.replace(/\s/g, ''));
+        console.log('📄 Contenu décodé (début):', content.substring(0, 200) + '...');
+        
+        return JSON.parse(content);
+    }
+
+    /* ===== CHARGEMENT VIA RAW (AVEC CACHE) ===== */
+    async loadFromRaw() {
+        // Fallback pour les utilisateurs sans token
+        const cacheBuster = Math.floor(Date.now() / 1000);
+        const url = `https://raw.githubusercontent.com/${this.config.owner}/${this.config.repo}/${this.config.branch}/${this.config.fileName}?_=${cacheBuster}`;
+        console.log('🔗 URL raw GitHub:', url);
+        
+        const response = await fetch(url);
+        console.log('📨 Réponse raw status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const text = await response.text();
+        console.log('📄 Texte raw (début):', text.substring(0, 200) + '...');
+        
+        return JSON.parse(text);
+    }
+
     /* ===== RÉCUPÉRATION DU SHA (pour les mises à jour) ===== */
     async getFileSha() {
         if (!this.githubToken) {
@@ -192,14 +235,14 @@ class SimpleRestaurantApp {
                 modeIndicator.innerHTML = `
                     <i class="bi bi-pencil-fill"></i>
                     <strong>Mode édition activé :</strong> Vous pouvez ajouter et modifier des restaurants !
-                    <br><small>💡 Les données sont automatiquement mises à jour à chaque F5</small>
+                    <br><small>⚡ Données immédiatement à jour grâce à l'API GitHub</small>
                 `;
             } else {
                 modeIndicator.className = 'alert alert-info d-inline-block';
                 modeIndicator.innerHTML = `
                     <i class="bi bi-eye-fill"></i>
                     <strong>Mode lecture seule</strong><br>
-                    <small>Connectez-vous à GitHub pour ajouter/modifier des restaurants</small>
+                    <small>⚠️ Délai possible (2-10min) - Connectez-vous pour des données immédiates</small>
                 `;
             }
         }
@@ -492,7 +535,7 @@ class SimpleRestaurantApp {
             const success = await this.saveToGitHub();
             
             if (success) {
-                this.showToast('✅ Sauvegardé ! Les données seront automatiquement à jour au prochain F5', 'success');
+                this.showToast('✅ Sauvegardé ! Rechargez (F5) pour voir les changements', 'success');
             }
             
         } catch (error) {
@@ -564,7 +607,7 @@ class SimpleRestaurantApp {
             if (fileResponse.ok) {
                 const fileData = await fileResponse.json();
                 console.log('✅ Fichier trouvé, SHA:', fileData.sha);
-                this.showToast('✅ GitHub connecté et fichier trouvé !', 'success');
+                this.showToast('✅ GitHub connecté ! Données immédiatement à jour.', 'success');
             } else if (fileResponse.status === 404) {
                 console.log('📄 Fichier n\'existe pas encore');
                 this.showToast('⚠️ Fichier n\'existe pas - sera créé à la première sauvegarde', 'warning');
@@ -592,7 +635,11 @@ class SimpleRestaurantApp {
             
             if (success) {
                 console.log('✅ Sauvegarde automatique réussie');
-                this.updateSyncStatus('✅ Sauvegardé - F5 pour actualiser');
+                if (this.githubToken) {
+                    this.updateSyncStatus('✅ Sauvegardé - F5 pour voir');
+                } else {
+                    this.updateSyncStatus('✅ Sauvegardé - délai 2-10min');
+                }
                 
                 // Remettre le statut normal après 3 secondes
                 setTimeout(() => {
@@ -1003,8 +1050,12 @@ class SimpleRestaurantApp {
         bootstrap.Modal.getInstance(document.getElementById('restaurant-modal')).hide();
         this.render();
         
-        // Notification locale immédiate
-        this.showToast(isEdit ? '✅ Restaurant modifié ! (F5 pour synchroniser)' : '✅ Restaurant ajouté ! (F5 pour synchroniser)', 'success');
+        // Notification selon le mode
+        if (this.githubToken) {
+            this.showToast(isEdit ? '✅ Restaurant modifié ! (F5 pour voir immédiatement)' : '✅ Restaurant ajouté ! (F5 pour voir immédiatement)', 'success');
+        } else {
+            this.showToast(isEdit ? '✅ Restaurant modifié ! (peut prendre 2-10min à apparaître)' : '✅ Restaurant ajouté ! (peut prendre 2-10min à apparaître)', 'warning');
+        }
         
         // Sauvegarde automatique en arrière-plan
         await this.autoSave();
