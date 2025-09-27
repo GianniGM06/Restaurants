@@ -142,8 +142,8 @@ class SimpleRestaurantApp {
         const response = await fetch(url, {
             headers: {
                 'Authorization': `token ${this.githubToken}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Cache-Control': 'no-cache'
+                'Accept': 'application/vnd.github.v3+json'
+                // Pas de Cache-Control pour éviter CORS
             }
         });
         
